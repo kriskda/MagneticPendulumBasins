@@ -1,3 +1,4 @@
+from src.functions import CommonFunctions
 
 
 class MagnetModel(object):
@@ -10,12 +11,62 @@ class MagnetModel(object):
 
 class PendulumModel(object):
     
-    def __init__(self, pos_x0, pos_y0, vel_x0, vel_y0, friction_constant):
+    gpu_source_template = """
+            __device__ inline void diff_eq(float t, float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
+                %s
+                float amx = 0.0f;
+                float amy = 0.0f;
+                             
+                for (int i = 0 ; i < n ; i++) {
+                    float deltaX = x[i] - x;
+                    float deltaY = y[i] - y;
+                    
+                    float dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY + d2);
+                    float distPow3 = dist * dist *dist;
+                
+                    amx += km[i] * deltaX / distPow3;
+                    amy += km[i] * deltaY / distPow3;
+                }
+                      
+                nvx = -kf * vx - kg * x + amx;
+                nvy = -kf * vy - kg * y + amy;
+                
+                nx = vx;
+                ny = vy;
+            }"""
+    
+    def __init__(self, pos_x0, pos_y0, vel_x0, vel_y0, friction, gravity_pullback, plane_distance):
         self.pos_x0 = pos_x0
         self.pos_y0 = pos_y0
         self.vel_x0 = vel_x0
         self.vel_y0 = vel_y0
         self.magnets = []
+        self.gravity_pullback = gravity_pullback
+        self.friction = friction
+        self.plane_distance = plane_distance
+        self.gpu_source = ""
         
-        self.friction_constant = friction_constant
+    def prepare_gpu_source(self):
+        pendulum_constants = """
+                float kf = %sf;
+                float kg = %sf;
+                float d2 = %sf * %sf;                
+            """ % (self.friction, self.gravity_pullback, self.plane_distance, self.plane_distance)        
         
+        magnets_pos_x = CommonFunctions.array_to_float_carray([magnet.pos_x for magnet in self.magnets])
+        magnets_pos_y = CommonFunctions.array_to_float_carray([magnet.pos_y for magnet in self.magnets])
+        magnets_strength = CommonFunctions.array_to_float_carray([magnet.magnetic_strength for magnet in self.magnets])
+        
+        magnets_constants = """
+                int n = %s;
+                
+                float x[n] = %s;
+                float y[n] = %s;
+                float km[n] = %s;        
+            """ % (len(self.magnets), magnets_pos_x, magnets_pos_y, magnets_strength)
+        
+        self.gpu_source = self.gpu_source_template % (pendulum_constants + magnets_constants)
+        
+    
+    
+    
