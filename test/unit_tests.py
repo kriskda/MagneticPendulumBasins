@@ -1,6 +1,7 @@
 import unittest
 from src.models import MagnetModel, PendulumModel
 from src.functions import CommonFunctions
+from src.integrators import EulerIntegrator
 
 
 class TestCommonFunctions(unittest.TestCase):
@@ -99,6 +100,36 @@ class TestPendulumModel(unittest.TestCase):
         self.assertEqual(pendulum_gpu_source, gpu_source)
 
 
+class TestEulerIntegrator(unittest.TestCase):
+    
+    def setUp(self):
+        self.time_step = 0.01
+        self.integrator = EulerIntegrator(self.time_step)
+    
+    def test_euler_integrator_instance(self):
+        self.assertEqual(self.integrator.__class__.__name__, "EulerIntegrator")
+        self.assertEqual(self.integrator.time_step, self.time_step)
+    
+    def test_euler_integrator_gpu_source(self):
+        gpu_source = """
+            __device__ inline void calculateStep(float t, float &x, float &y, float &vx, float &vy) {
+                float dt = 0.01f;
+                float nx, ny, nvx, nvy;
+                
+                diff_eq(t, nx, ny, nvx, nvy, x, y, vx, vy);
+        
+                vx = vx + nvx * dt;
+                vy = vy + nvy * dt;
+                
+                x = x + nx * dt;
+                y = y + ny * dt;                
+            }
+        """
+        
+        gpu_source = "".join(gpu_source.split())
+        integrator_gpu_source = "".join(self.integrator.gpu_source.split())
+ 
+        self.assertEqual(integrator_gpu_source, gpu_source)
 
 if __name__ == '__main__':
     unittest.main()
