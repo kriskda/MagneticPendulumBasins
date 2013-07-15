@@ -1,7 +1,11 @@
 import unittest
-from src.models import MagnetModel, PendulumModel
+import colorsys
+import random
+
+from src.models import MagnetModel, PendulumModel 
 from src.functions import CommonFunctions
 from src.integrators import EulerIntegrator
+from src.graphics import BasicImageGenerator
 
 
 class TestCommonFunctions(unittest.TestCase):
@@ -130,6 +134,45 @@ class TestEulerIntegrator(unittest.TestCase):
         integrator_gpu_source = "".join(self.integrator.gpu_source.split())
  
         self.assertEqual(integrator_gpu_source, gpu_source)
+
+
+class TestBasicImageGenerator(unittest.TestCase):
+    
+    def setUp(self):
+        self.r = 255
+        self.g = 0
+        self.b = 0
+        self.image_generator = BasicImageGenerator(self.r, self.g, self.b)
+    
+    def test_generator_initalization(self):
+        self.assertEqual(self.image_generator.base_hsv, colorsys.rgb_to_hsv(self.r / 255.0, self.g /255.0, self.b / 255.0))
+
+    def test_image_generation_1(self):
+        number_of_colors = 3
+        test_data = [[0, 2, 1], [1, 0, 1], [1, 2, 0]]
+        
+        self.image_generator.generate_image("test_image_1", test_data, number_of_colors)
+       
+    def test_image_generation_2(self): 
+        number_of_colors = 10
+        test_data = []
+        
+        for i in range(1, 100):
+            
+            temp_data = []            
+            for j in range(1, 100):
+                temp_data.append(random.randint(0, number_of_colors))
+            
+            test_data.append(temp_data)
+                
+        self.image_generator.generate_image("test_image_2", test_data, number_of_colors)        
+
+    def test_image_generation_3(self):
+        number_of_colors = 5
+        test_data = [[0, 2, 2, 4, 1], [1, 0, 2, 4, 1], [1, 1, 0, 4, 1], [4, 4, 4, 0, 1], [3, 3, 3, 3, 0]]
+        
+        self.image_generator.generate_image("test_image_3", test_data, number_of_colors)
+
 
 if __name__ == '__main__':
     unittest.main()

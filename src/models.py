@@ -1,4 +1,4 @@
-from src.functions import CommonFunctions
+from src.functions import CommonFunctions              
 
 
 class MagnetModel(object):
