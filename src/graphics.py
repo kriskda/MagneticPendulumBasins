@@ -18,11 +18,15 @@ class BasicImageGenerator(object):
 
         for i, row in enumerate(result_data):
             for j, color_number in enumerate(row):
-                pixels[j, i] = self._color_pixel(color_number, number_of_colors)
+                pixels[j, i] = self._colorize_pixel(color_number, number_of_colors)
 
         image.save(file_name + ".png", "PNG")
         
-    def _color_pixel(self, color_number, number_of_colors):
+    '''
+        Takes base color converted to hsv color space and changes hue of this color 
+        based on number of magnets (i.e. colors) and current magnet (color) 
+    '''
+    def _colorize_pixel(self, color_number, number_of_colors):
         base_hue = self.base_hsv[0]
         base_saturation = self.base_hsv[1]
         base_value = self.base_hsv[2]        
