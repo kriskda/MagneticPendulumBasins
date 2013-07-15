@@ -33,7 +33,14 @@ class PendulumModel(object):
                 
                 nx = vx;
                 ny = vy;
-            }"""
+            }
+            
+            __device__ int determineMagnet(float x, float y, float r) {
+                %s
+                
+                return -1;        
+            }
+            """
     
     def __init__(self, pos_x0, pos_y0, vel_x0, vel_y0, friction, gravity_pullback, plane_distance):
         self.pos_x0 = pos_x0
@@ -64,9 +71,22 @@ class PendulumModel(object):
                 float y[n] = %s;
                 float km[n] = %s;        
             """ % (len(self.magnets), magnets_pos_x, magnets_pos_y, magnets_strength)
-        
-        self.gpu_source = self.gpu_source_template % (pendulum_constants + magnets_constants)
-        
-    
-    
+            
+        determine_magnets = ""
+        for i, magnet in enumerate(self.magnets):
+            determine_magnets += """
+                float m%sdx = x + (%sf);
+                float m%sdy = y + (%sf);
+                    
+                if ( (m%sdx * m%sdx  + m%sdy * m%sdy) <= r * r ) {
+                    return %s;
+                } 
+            """ % (i, magnet.pos_x, i, magnet.pos_y, i, i, i, i, i)
+ 
+        self.gpu_source = self.gpu_source_template % (pendulum_constants + magnets_constants, determine_magnets)
+   
+   
+   
+   
+   
     

@@ -9,14 +9,14 @@ class BasicImageGenerator(object):
     def __init__(self, r, g, b):
         self.base_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
 
-    def generate_image(self, file_name, data_list, number_of_colors):
-        width = len(data_list)
-        height = len(data_list[0])
+    def generate_image(self, file_name, result_data, number_of_colors):
+        width = len(result_data)
+        height = len(result_data[0])
 
         image = Image.new("RGB", (width, height))
         pixels = image.load()
 
-        for i, row in enumerate(data_list):
+        for i, row in enumerate(result_data):
             for j, color_number in enumerate(row):
                 pixels[j, i] = self._color_pixel(color_number, number_of_colors)
 
