@@ -1,5 +1,5 @@
-from src.functions import CommonFunctions 
-
+from src.functions import CommonFunctions  
+   
 class MagnetModel(object):
     
     def __init__(self, pos_x, pos_y, magnetic_strength):
@@ -10,17 +10,17 @@ class MagnetModel(object):
 
 class PendulumModel(object):
     
-    gpu_source_template = """
-            __device__ inline void diff_eq(float t, float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
+    gpu_source_template = """     
+            __device__ inline void diff_eq(float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
                 %s
                 float amx = 0.0f;
                 float amy = 0.0f;
                              
                 for (int i = 0 ; i < n ; i++) {
-                    float deltaX = x[i] - x;
-                    float deltaY = y[i] - y;
+                    float deltaX = xm[i] - x;
+                    float deltaY = ym[i] - y;
                     
-                    float dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY + d2);
+                    float dist = sqrtf(deltaX * deltaX + deltaY * deltaY + d2);
                     float distPow3 = dist * dist *dist;
                 
                     amx += km[i] * deltaX / distPow3;
@@ -41,11 +41,7 @@ class PendulumModel(object):
             }
             """
     
-    def __init__(self, pos_x0, pos_y0, vel_x0, vel_y0, friction, gravity_pullback, plane_distance):
-        self.pos_x0 = pos_x0
-        self.pos_y0 = pos_y0
-        self.vel_x0 = vel_x0
-        self.vel_y0 = vel_y0
+    def __init__(self, friction, gravity_pullback, plane_distance):
         self.magnets = []
         self.gravity_pullback = gravity_pullback
         self.friction = friction
@@ -54,9 +50,9 @@ class PendulumModel(object):
         
     def prepare_gpu_source(self):
         pendulum_constants = """
-                float kf = %sf;
-                float kg = %sf;
-                float d2 = %sf * %sf;                
+                const float kf = %sf;
+                const float kg = %sf;
+                const float d2 = %sf * %sf;                
             """ % (self.friction, self.gravity_pullback, self.plane_distance, self.plane_distance)        
         
         magnets_pos_x = CommonFunctions.array_to_float_carray([magnet.pos_x for magnet in self.magnets])
@@ -64,23 +60,23 @@ class PendulumModel(object):
         magnets_strength = CommonFunctions.array_to_float_carray([magnet.magnetic_strength for magnet in self.magnets])
         
         magnets_constants = """
-                int n = %s;
+                const int n = %s;
                 
-                float x[n] = %s;
-                float y[n] = %s;
-                float km[n] = %s;        
+                const float xm[n] = %s;
+                const float ym[n] = %s;
+                const float km[n] = %s;        
             """ % (len(self.magnets), magnets_pos_x, magnets_pos_y, magnets_strength)
             
         determine_magnets = ""
         for i, magnet in enumerate(self.magnets):
             determine_magnets += """
-                float m%sdx = x + (%sf);
-                float m%sdy = y + (%sf);
-                    
-                if ( (m%sdx * m%sdx  + m%sdy * m%sdy) <= r * r ) {
+                bool m%sdx = ((%sf - r) <= x) && (x <= (%sf + r));
+                bool m%sdy = ((%sf - r) <= y) && (y <= (%sf + r));
+   
+                if (m%sdx && m%sdy) {
                     return %s;
                 } 
-            """ % (i, magnet.pos_x, i, magnet.pos_y, i, i, i, i, i)
+            """ % (i, magnet.pos_x, magnet.pos_x, i, magnet.pos_y, magnet.pos_y, i, i, i)
  
         self.gpu_source = self.gpu_source_template % (pendulum_constants + magnets_constants, determine_magnets)
    

@@ -2,11 +2,11 @@ import unittest
 import colorsys
 import random
 
-from src.models import MagnetModel, PendulumModel  
-from src.functions import CommonFunctions       
-from src.integrators import EulerIntegrator   
-from src.graphics import BasicImageGenerator  
-from src.basins import BasinsGenerator          
+from src.models import MagnetModel, PendulumModel   
+from src.functions import CommonFunctions        
+from src.integrators import EulerIntegrator    
+from src.graphics import BasicImageGenerator   
+from src.basins import BasinsGenerator           
                         
  
 
@@ -41,23 +41,15 @@ class TestPendulumModel(unittest.TestCase):
         
         self.magnets = [magnet1, magnet2,  magnet3]
         
-        self.pos_x0 = 0.8
-        self.pos_y0 = 0.3
-        self.vel_x0 = 1.2
-        self.vel_y0 = -0.1
         self.plane_distance = 0.25
         
         self.friction = 0.3
         self.gravity_pullback = 0.5
         
-        self.pendulum = PendulumModel(self.pos_x0, self.pos_y0, self.vel_x0, self.vel_y0, self.friction, self.gravity_pullback, self.plane_distance)
+        self.pendulum = PendulumModel(self.friction, self.gravity_pullback, self.plane_distance)
         self.pendulum.magnets = self.magnets
     
     def test_pendulum_model_initalization(self):
-        self.assertEqual(self.pendulum.pos_x0, self.pos_x0)
-        self.assertEqual(self.pendulum.pos_y0, self.pos_y0)
-        self.assertEqual(self.pendulum.vel_x0, self.vel_x0)
-        self.assertEqual(self.pendulum.vel_y0, self.vel_y0)
         self.assertEqual(self.pendulum.friction, self.friction)
         self.assertEqual(self.pendulum.gravity_pullback, self.gravity_pullback)
         self.assertEqual(self.pendulum.plane_distance, self.plane_distance)
@@ -67,26 +59,26 @@ class TestPendulumModel(unittest.TestCase):
         self.pendulum.prepare_gpu_source()
         
         gpu_source = """
-            __device__ inline void diff_eq(float t, float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
+            __device__ inline void diff_eq(float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
                 
-                float kf = 0.3f;
-                float kg = 0.5f;
-                float d2 = 0.25f * 0.25f;
+                const float kf = 0.3f;
+                const float kg = 0.5f;
+                const float d2 = 0.25f * 0.25f;
                  
-                int n = 3; 
+                const int n = 3; 
       
-                float x[n] = {0.1f, 1.1f, -0.1f};
-                float y[n] = {0.6f, -0.3f, 0.45f};
-                float km[n] = {0.8f, 1.8f, -0.4f};                
+                const float xm[n] = {0.1f, 1.1f, -0.1f};
+                const float ym[n] = {0.6f, -0.3f, 0.45f};
+                const float km[n] = {0.8f, 1.8f, -0.4f};                
                 
                 float amx = 0.0f;
                 float amy = 0.0f;
                              
                 for (int i = 0 ; i < n ; i++) {
-                    float deltaX = x[i] - x;
-                    float deltaY = y[i] - y;
+                    float deltaX = xm[i] - x;
+                    float deltaY = ym[i] - y;
                     
-                    float dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY + d2);
+                    float dist = sqrtf(deltaX * deltaX + deltaY * deltaY + d2);
                     float distPow3 = dist * dist * dist;
                 
                     amx += km[i] * deltaX / distPow3;
@@ -101,27 +93,27 @@ class TestPendulumModel(unittest.TestCase):
             }
     
             __device__ int determineMagnet(float x, float y, float r) {
-                float m0dx = x + (0.1f);
-                float m0dy = y + (0.6f);
-                
-                if ( (m0dx * m0dx  + m0dy * m0dy) <= r * r ) {
+                bool m0dx = (((0.1f) - r) <= x <= ((0.1f) + r));
+                bool m0dy = (((0.6f) - r) <= y <= ((0.6f) + r));
+                    
+                if (m0dx && m0dy) {
                     return 0;
                 } 
-                                
-                float m1dx = x + (1.1f);
-                float m1dy = y + (-0.3f);
-                
-                if ( (m1dx * m1dx  + m1dy * m1dy) <= r * r ) {
+            
+                bool m1dx = (((-1.1f) - r) <= x <= ((-1.1f) + r));
+                bool m1dy = (((-0.3f) - r) <= y <= ((-0.3f) + r));
+                    
+                if (m1dx && m1dy) {
                     return 1;
                 } 
-                
-                float m2dx = x + (-0.1f);
-                float m2dy = y + (0.45f);
-
-                if ( (m2dx * m2dx  + m2dy * m2dy) <= r * r ) {
+            
+                bool m2dx = (((-0.1f) - r) <= x <= ((-0.1f) + r));
+                bool m2dy = (((-0.45f) - r) <= y <= ((-0.45f) + r));
+                    
+                if (m2dx && m2dy) {
                     return 2;
                 } 
-                                
+                                           
                 return -1; 
             }
             """
@@ -144,11 +136,10 @@ class TestEulerIntegrator(unittest.TestCase):
     
     def test_euler_integrator_gpu_source(self):
         gpu_source = """
-            __device__ inline void calculateStep(float t, float &x, float &y, float &vx, float &vy) {
-                float dt = 0.01f;
+            __device__ inline void calculateStep(float &x, float &y, float &vx, float &vy) {                
                 float nx, ny, nvx, nvy;
                 
-                diff_eq(t, nx, ny, nvx, nvy, x, y, vx, vy);
+                diff_eq(nx, ny, nvx, nvy, x, y, vx, vy);
         
                 vx = vx + nvx * dt;
                 vy = vy + nvy * dt;
@@ -197,22 +188,18 @@ class TestBasicImageGenerator(unittest.TestCase):
 class TestBasinsGenerator(unittest.TestCase):
     
     def setUp(self):
-        magnet1 = MagnetModel(0.1, 0.6, 0.8)
-        magnet2 = MagnetModel(1.1, -0.3, 1.8)
-        magnet3 = MagnetModel(-0.1, 0.45, -0.4)
+        magnet1 = MagnetModel(1.0, 0.0, 1.5)
+        magnet2 = MagnetModel(-1.0, 1.0, 1.5)
+        magnet3 = MagnetModel(-1.0, -1.0, 1.5)
+        magnet4 = MagnetModel(0.0, 0.0, 0.5)
         
-        self.magnets = [magnet1, magnet2,  magnet3]
+        self.magnets = [magnet1, magnet2,  magnet3, magnet4]
         
-        self.pos_x0 = 0.8
-        self.pos_y0 = 0.3
-        self.vel_x0 = 1.2
-        self.vel_y0 = -0.1
         self.plane_distance = 0.25
-        
         self.friction = 0.3
         self.gravity_pullback = 0.5
         
-        self.pendulum = PendulumModel(self.pos_x0, self.pos_y0, self.vel_x0, self.vel_y0, self.friction, self.gravity_pullback, self.plane_distance)
+        self.pendulum = PendulumModel(self.friction, self.gravity_pullback, self.plane_distance)
         self.pendulum.magnets = self.magnets
         
         self.time_step = 0.01
@@ -224,8 +211,11 @@ class TestBasinsGenerator(unittest.TestCase):
         self.image_generator = BasicImageGenerator(self.r, self.g, self.b)
         
         self.size = 5
-        self.resolution = 600
-        self.basins_generator = BasinsGenerator(5, 600)
+        self.resolution = 640
+        self.basins_generator = BasinsGenerator(self.size, self.resolution)
+        self.basins_generator.pendulum_model = self.pendulum
+        self.basins_generator.integrator = self.integrator
+        self.basins_generator.image_generator = self.image_generator
     
     def test_basins_initalization(self):
         self.assertEqual(self.basins_generator.size, self.size)
@@ -243,35 +233,12 @@ class TestBasinsGenerator(unittest.TestCase):
         self.assertEqual(self.basins_generator.pendulum_model.magnets, self.magnets)
 
     def test_basins_gpu_calculation(self):
-        gpu_source = """
-            __global__ void basins(float *cudaResult, float *posx0, float *posy0, float *velx0, float *vely0) {
-                const int idx = blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x + 
-                                blockIdx.x  * blockDim.z * blockDim.y * blockDim.x + 
-                                threadIdx.z * blockDim.y * blockDim.x + 
-                                threadIdx.y * blockDim.x + 
-                                threadIdx.x;
-
-                float x = posx0[idx];
-                float y = posy0[idx];
-                float vx = velx0[idx];
-                float vy = vely0[idx];
-                float t = 0;
-                
-                do {                
-                    calculateStep(t, x, y, vx, vy);
-                    t += dt;  
-                } while (t <= simTime);
-
-                cudaResult[idx] = determineMagnet(x, y, 0.5f);
-            }
-        """
+        sim_time = 50
         
-        sim_time = 10
-        self.basins_generator.calculate_basins(sim_time)
-
-        #self.assertEqual(len(self.basins_generator.result_data), len(600))
-        
+        self.basins_generator.calculate_basins([0, 0], sim_time)        
         self.basins_generator.draw_basins()
+
+        self.assertEqual(len(self.basins_generator.result_data), 640)
 
 
 if __name__ == '__main__':

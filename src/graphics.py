@@ -1,6 +1,6 @@
 import Image
 import colorsys
-
+  
 
 class BasicImageGenerator(object):
 
