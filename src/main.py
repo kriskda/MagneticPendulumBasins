@@ -18,7 +18,7 @@ def main():
     pendulum.magnets = magnets 
 
     # Parameters: time_step
-    integrator = EulerIntegrator(0.01)  
+    integrator = EulerIntegrator(0.001)  
     
     # Paramaters: r, g, b - startign color definition
     image_generator = BasicImageGenerator(255, 0, 0)
@@ -30,7 +30,7 @@ def main():
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta
-    basins_generator.calculate_basins([0, 0], 80, 0.2)   
+    basins_generator.calculate_basins([0, 0], 50, 0.2)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 

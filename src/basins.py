@@ -13,11 +13,14 @@ class BasinsGenerator(object):
     
     main_source_template = """
             __global__ void basins(float *cudaResult, float *posx0, float *posy0) {
-                const int idx = blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x + 
+                /*const int idx = blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x + 
                                 blockIdx.x  * blockDim.z * blockDim.y * blockDim.x + 
                                 threadIdx.z * blockDim.y * blockDim.x + 
                                 threadIdx.y * blockDim.x + 
-                                threadIdx.x;
+                                threadIdx.x;*/
+                                
+                const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+                
 
                 float x = posx0[idx];
                 float y = posy0[idx];
@@ -79,14 +82,19 @@ class BasinsGenerator(object):
         
         self._initalize_cuda()        
 
+        print self.gpu_source
+        print len(pos0[0])
+
         mod = SourceModule(self.gpu_source)
 
         do_basins = mod.get_function("basins")
         do_basins(cuda.Out(cuda_result), 
                   cuda.In(pos0[0]), 
                   cuda.In(pos0[1]), 
-                  block = (16, 16, 1), 
-                  grid = (40, 40))
+                  block = (4, 4, 1), 
+                  grid = (160, 160))
+        
+        print cuda_result
         
         self._deactivate_cuda()        
         self._save_data(cuda_result)
