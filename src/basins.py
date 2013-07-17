@@ -2,7 +2,7 @@ import numpy
 import pycuda.driver as cuda
 
 from pycuda.compiler import SourceModule 
-   
+    
 
 class BasinsGenerator(object):
     
@@ -45,8 +45,10 @@ class BasinsGenerator(object):
         self.gpu_source = ""
         self.result_data = []
         
-    def calculate_basins(self, vel0, sim_time):
-        self.prepare_gpu_source(vel0, sim_time)
+    def calculate_basins(self, vel0, sim_time, delta):
+        print "> Calculating basins"
+        
+        self.prepare_gpu_source(vel0, sim_time, delta)
 
         scale = self.size / float(self.resolution)  # after modification change grid & block sizes in GPU !!!
 
@@ -65,11 +67,11 @@ class BasinsGenerator(object):
         
         self._do_cuda_calculation([posx0, posy0])
     
-    def prepare_gpu_source(self, vel0, sim_time):
+    def prepare_gpu_source(self, vel0, sim_time, delta):
         self.pendulum_model.prepare_gpu_source()
         
         constants_source = self.constants_source_template % (self.integrator.time_step, float(sim_time))
-        main_source = self.main_source_template % (float(vel0[0]), float(vel0[1]), float(0.5))  # delta
+        main_source = self.main_source_template % (float(vel0[0]), float(vel0[1]), float(delta)) 
         self.gpu_source = constants_source + self.pendulum_model.gpu_source + self.integrator.gpu_source + main_source
 
     def _do_cuda_calculation(self, pos0):
@@ -101,13 +103,20 @@ class BasinsGenerator(object):
         self.cuda_context.detach() 
         
     def _save_data(self, cuda_result):
+        is_nodata_pixels = -1 in cuda_result[0]
+        
+        if is_nodata_pixels:
+            print "  WARNING: some pixels could not be assignet to magnet"
+        
         self.result_data = numpy.reshape(cuda_result[0], (self.resolution, self.resolution))
         
-        print self.gpu_source   
-        print self.result_data        
+        #print self.gpu_source   
+        #print self.result_data        
                 
-    def draw_basins(self):
-        self.image_generator.generate_image("test_image", self.result_data, len(self.pendulum_model.magnets))
+    def draw_basins(self, file_name):
+        print "> Generating image"
+        
+        self.image_generator.generate_image(file_name, self.result_data, len(self.pendulum_model.magnets))
     
     
     

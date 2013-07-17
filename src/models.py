@@ -1,4 +1,4 @@
-from src.functions import CommonFunctions  
+from src.functions import CommonFunctions   
    
 class MagnetModel(object):
     
@@ -34,7 +34,7 @@ class PendulumModel(object):
                 ny = vy;
             }
             
-            __device__ int determineMagnet(float x, float y, float r) {
+            __device__ int determineMagnet(float x, float y, float delta) {
                 %s
                 
                 return -1;        
@@ -70,8 +70,8 @@ class PendulumModel(object):
         determine_magnets = ""
         for i, magnet in enumerate(self.magnets):
             determine_magnets += """
-                bool m%sdx = ((%sf - r) <= x) && (x <= (%sf + r));
-                bool m%sdy = ((%sf - r) <= y) && (y <= (%sf + r));
+                bool m%sdx = ((%sf - delta) <= x) && (x <= (%sf + delta));
+                bool m%sdy = ((%sf - delta) <= y) && (y <= (%sf + delta));
    
                 if (m%sdx && m%sdy) {
                     return %s;

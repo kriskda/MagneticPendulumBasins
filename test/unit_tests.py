@@ -5,7 +5,7 @@ import random
 from src.models import MagnetModel, PendulumModel   
 from src.functions import CommonFunctions        
 from src.integrators import EulerIntegrator    
-from src.graphics import BasicImageGenerator   
+from src.graphics import BasicImageGenerator    
 from src.basins import BasinsGenerator           
                         
  
@@ -41,8 +41,7 @@ class TestPendulumModel(unittest.TestCase):
         
         self.magnets = [magnet1, magnet2,  magnet3]
         
-        self.plane_distance = 0.25
-        
+        self.plane_distance = 0.25        
         self.friction = 0.3
         self.gravity_pullback = 0.5
         
@@ -92,32 +91,32 @@ class TestPendulumModel(unittest.TestCase):
                 ny = vy;
             }
     
-            __device__ int determineMagnet(float x, float y, float r) {
-                bool m0dx = (((0.1f) - r) <= x <= ((0.1f) + r));
-                bool m0dy = (((0.6f) - r) <= y <= ((0.6f) + r));
-                    
+            __device__ int determineMagnet(float x, float y, float delta) {
+                bool m0dx = ((0.1f - delta) <= x) && (x <= (0.1f + delta));
+                bool m0dy = ((0.6f - delta) <= y) && (y <= (0.6f + delta));
+   
                 if (m0dx && m0dy) {
                     return 0;
                 } 
             
-                bool m1dx = (((-1.1f) - r) <= x <= ((-1.1f) + r));
-                bool m1dy = (((-0.3f) - r) <= y <= ((-0.3f) + r));
-                    
+                bool m1dx = ((1.1f - delta) <= x) && (x <= (1.1f + delta));
+                bool m1dy = ((-0.3f - delta) <= y) && (y <= (-0.3f + delta));
+   
                 if (m1dx && m1dy) {
                     return 1;
                 } 
             
-                bool m2dx = (((-0.1f) - r) <= x <= ((-0.1f) + r));
-                bool m2dy = (((-0.45f) - r) <= y <= ((-0.45f) + r));
-                    
+                bool m2dx = ((-0.1f - delta) <= x) && (x <= (-0.1f + delta));
+                bool m2dy = ((0.45f - delta) <= y) && (y <= (0.45f + delta));
+   
                 if (m2dx && m2dy) {
                     return 2;
-                } 
+                }  
                                            
                 return -1; 
             }
             """
-        
+            
         gpu_source = "".join(gpu_source.split())
         pendulum_gpu_source = "".join(self.pendulum.gpu_source.split())
  
@@ -231,12 +230,15 @@ class TestBasinsGenerator(unittest.TestCase):
         self.assertEqual(self.basins_generator.image_generator, self.image_generator)
         
         self.assertEqual(self.basins_generator.pendulum_model.magnets, self.magnets)
-
+ 
     def test_basins_gpu_calculation(self):
-        sim_time = 50
+        vel_vect = [0, 0]
+        sim_time = 5
+        delta = 0.2
+        file_name = "test_image"
         
-        self.basins_generator.calculate_basins([0, 0], sim_time)        
-        self.basins_generator.draw_basins()
+        self.basins_generator.calculate_basins(vel_vect, sim_time, delta)        
+        self.basins_generator.draw_basins(file_name)
 
         self.assertEqual(len(self.basins_generator.result_data), 640)
 
