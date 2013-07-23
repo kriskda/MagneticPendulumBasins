@@ -170,18 +170,24 @@ class TestBasicImageGenerator(unittest.TestCase):
         test_data = [[0, 2, 1], [1, 0, 1], [1, 2, 0]]
         
         self.image_generator.generate_image("test_image_1", test_data, number_of_colors)
+        
+        self.assertEqual(len(self.image_generator.color_list), number_of_colors)
        
     def test_image_generation_2(self): 
         number_of_colors = 10
-        test_data = [[random.randint(0, number_of_colors) for j in range(1, 100)] for i in range(1, 100)]
+        test_data = [[random.randint(0, number_of_colors - 1) for j in range(1, 100)] for i in range(1, 100)]
                 
-        self.image_generator.generate_image("test_image_2", test_data, number_of_colors)        
+        self.image_generator.generate_image("test_image_2", test_data, number_of_colors)    
+        
+        self.assertEqual(len(self.image_generator.color_list), number_of_colors)    
 
     def test_image_generation_3(self):
         number_of_colors = 5
         test_data = [[0, 2, 2, 4, 1], [1, 0, 2, 4, 1], [1, 1, 0, 4, 1], [4, 4, 4, 0, 1], [3, 3, 3, 3, 0]]
         
         self.image_generator.generate_image("test_image_3", test_data, number_of_colors)
+        
+        self.assertEqual(len(self.image_generator.color_list), number_of_colors)
 
 
 class TestBasinsGenerator(unittest.TestCase):

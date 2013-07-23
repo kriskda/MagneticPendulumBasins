@@ -79,9 +79,9 @@ class PendulumModel(object):
             """ % (i, magnet.pos_x, magnet.pos_x, i, magnet.pos_y, magnet.pos_y, i, i, i)
  
         self.gpu_source = self.gpu_source_template % (pendulum_constants + magnets_constants, determine_magnets)
-   
-   
-   
-   
+
+
+
+
    
     

@@ -6,7 +6,7 @@ from pycuda.compiler import SourceModule
 
 class BasinsGenerator(object):
     
-    threads_per_block = 8;
+    THREADS_PER_BLOCK = 8;
     
     constants_source_template = """
         __const__ float dt = %sf;
@@ -81,8 +81,8 @@ class BasinsGenerator(object):
         do_basins(cuda.In(pos0[0]), 
                   cuda.In(pos0[1]), 
                   cuda.Out(cuda_result), 
-                  block = (self.threads_per_block, self.threads_per_block, 1), 
-                  grid = (self.resolution / self.threads_per_block, self.resolution / self.threads_per_block))
+                  block = (self.THREADS_PER_BLOCK, self.THREADS_PER_BLOCK, 1), 
+                  grid = (self.resolution / self.THREADS_PER_BLOCK, self.resolution / self.THREADS_PER_BLOCK))
 
         self._deactivate_cuda()        
         self._save_data(cuda_result)
@@ -104,8 +104,8 @@ class BasinsGenerator(object):
         if is_nodata_pixels:
             print "  WARNING: some pixels could not be assignet to magnet"
         
-        self.result_data = numpy.reshape(cuda_result, (self.resolution, self.resolution))
-          
+        self.result_data = map(lambda x: map(int, x), cuda_result)
+   
     def draw_basins(self, file_name):
         print "> Generating image"
         
