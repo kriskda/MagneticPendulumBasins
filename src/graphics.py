@@ -1,5 +1,5 @@
 import Image
-import colorsys
+import colorsys  
    
 
 class BasicImageGenerator(object):

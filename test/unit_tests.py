@@ -2,7 +2,7 @@ import unittest
 import colorsys
 import random
 
-from src.models import MagnetModel, PendulumModel   
+from src.models import MagnetModel, PendulumModel     
 from src.functions import CommonFunctions        
 from src.integrators import EulerIntegrator    
 from src.graphics import BasicImageGenerator    

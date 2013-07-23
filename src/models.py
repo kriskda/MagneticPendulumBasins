@@ -1,6 +1,6 @@
-from src.functions import CommonFunctions   
-   
-class MagnetModel(object):
+from src.functions import CommonFunctions    
+     
+class MagnetModel(object): 
     
     def __init__(self, pos_x, pos_y, magnetic_strength):
         self.pos_x = pos_x

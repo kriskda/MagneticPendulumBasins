@@ -1,5 +1,5 @@
-
-   
+ 
+      
 class CommonFunctions(object):
      
     @staticmethod

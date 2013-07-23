@@ -1,5 +1,5 @@
   
-      
+       
 class EulerIntegrator(object):
     
     gpu_source_template = """
