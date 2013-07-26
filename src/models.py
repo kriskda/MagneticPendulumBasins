@@ -1,5 +1,5 @@
-from src.functions import CommonFunctions    
-     
+from functions import CommonFunctions     
+       
 class MagnetModel(object): 
     
     def __init__(self, pos_x, pos_y, magnetic_strength):
@@ -11,7 +11,7 @@ class MagnetModel(object):
 class PendulumModel(object):
     
     gpu_source_template = """     
-            __device__ inline void diff_eq(float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
+            __device__ inline void diff_eq(float &ax, float &ay, float &x, float &y, float &vx, float &vy) { 
                 %s
                 float amx = 0.0f;
                 float amy = 0.0f;
@@ -27,14 +27,11 @@ class PendulumModel(object):
                     amy += km[i] * deltaY / distPow3;
                 }
                       
-                nvx = -kf * vx - kg * x + amx;
-                nvy = -kf * vy - kg * y + amy;
-                
-                nx = vx;
-                ny = vy;
+                ax = -kf * vx - kg * x + amx;
+                ay = -kf * vy - kg * y + amy;
             }
             
-            __device__ int determineMagnet(float x, float y, float delta) {
+            __device__ int determineMagnet(float &x, float &y, float delta) {
                 %s
                 
                 return -1;        
@@ -83,5 +80,7 @@ class PendulumModel(object):
 
 
 
+   
+   
    
     

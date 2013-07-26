@@ -3,12 +3,12 @@ import colorsys
 import random
 
 from src.models import MagnetModel, PendulumModel     
-from src.functions import CommonFunctions        
-from src.integrators import EulerIntegrator    
-from src.graphics import BasicImageGenerator    
-from src.basins import BasinsGenerator           
+from src.functions import CommonFunctions            
+from src.integrators import EulerIntegrator      
+from src.graphics import BasicImageGenerator         
+from src.basins import BasinsGenerator            
                         
- 
+  
 
 class TestCommonFunctions(unittest.TestCase):
     
@@ -58,7 +58,7 @@ class TestPendulumModel(unittest.TestCase):
         self.pendulum.prepare_gpu_source()
         
         gpu_source = """
-            __device__ inline void diff_eq(float &nx, float &ny, float &nvx, float &nvy, float x, float y, float vx, float vy) { 
+            __device__ inline void diff_eq(float &ax, float &ay, float &x, float &y, float &vx, float &vy) { 
                 
                 const float kf = 0.3f;
                 const float kg = 0.5f;
@@ -84,14 +84,11 @@ class TestPendulumModel(unittest.TestCase):
                     amy += km[i] * deltaY / distPow3;
                 }
                       
-                nvx = -kf * vx - kg * x + amx;
-                nvy = -kf * vy - kg * y + amy;
-                
-                nx = vx;
-                ny = vy;
+                ax = -kf * vx - kg * x + amx;
+                ay = -kf * vy - kg * y + amy;
             }
     
-            __device__ int determineMagnet(float x, float y, float delta) {
+            __device__ int determineMagnet(float &x, float &y, float delta) {
                 bool m0dx = ((0.1f - delta) <= x) && (x <= (0.1f + delta));
                 bool m0dy = ((0.6f - delta) <= y) && (y <= (0.6f + delta));
    
@@ -135,16 +132,16 @@ class TestEulerIntegrator(unittest.TestCase):
     
     def test_euler_integrator_gpu_source(self):
         gpu_source = """
-            __device__ inline void calculateStep(float &x, float &y, float &vx, float &vy) {                
-                float nx, ny, nvx, nvy;
+            __device__ inline void calculateStep(float &x, float &y, float &vx, float &vy) {
+                float ax, ay;
                 
-                diff_eq(nx, ny, nvx, nvy, x, y, vx, vy);
+                diff_eq(ax, ay, x, y, vx, vy);
         
-                vx = vx + nvx * dt;
-                vy = vy + nvy * dt;
+                vx = vx + ax * dt;
+                vy = vy + ay * dt;
                 
-                x = x + nx * dt;
-                y = y + ny * dt;                
+                x = x + vx * dt;
+                y = y + vy * dt;                
             }
         """
         

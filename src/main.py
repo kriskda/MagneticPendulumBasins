@@ -24,12 +24,20 @@ def main():
             angle = i * math.pi / 3
             magnets.append(MagnetModel(math.cos(angle), math.sin(angle), 0.5)) 
             
-        magnets.append(MagnetModel(0.0, 0.0, 0.1))
+        #magnets.append(MagnetModel(0.0, 0.0, 0.1))
     elif magnets_example == 3:
         magnet1 = MagnetModel(1.0, 1.0, 1.5)
         magnet2 = MagnetModel(-1.0, -1.0, 1.5)
   
         magnets = [magnet1, magnet2]
+    elif magnets_example == 4:
+        magnets = []
+        
+        for i in range(1, 13):
+            angle = i * math.pi / 6
+            magnets.append(MagnetModel(math.cos(angle), math.sin(angle), 1.5)) 
+            
+        magnets.append(MagnetModel(0.0, 0.0, 0.1))        
     
 
     # Parameters: friction, gravity_pullback, plane_distance
@@ -43,13 +51,13 @@ def main():
     image_generator = BasicImageGenerator(255, 0, 0)
     
     # Parameters: size
-    basins_generator = BasinsGenerator(10)
+    basins_generator = BasinsGenerator(10, 400)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta
-    basins_generator.calculate_basins([0, 0], 30, 0.4)   
+    basins_generator.calculate_basins([0, 0], 200, 0.4)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 

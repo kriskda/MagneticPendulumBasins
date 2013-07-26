@@ -1,8 +1,8 @@
 import Image
 import colorsys  
 import random
-   
-
+    
+ 
 class BasicImageGenerator(object):
 
     RGB_COLOR_SIZE = 255.0
@@ -25,7 +25,6 @@ class BasicImageGenerator(object):
                 pixels[j, i] = self._colorize_pixel(color_number)
 
         image.save(file_name + ".png", "PNG")
-        
 
     def _colorize_pixel(self, color_number):
 

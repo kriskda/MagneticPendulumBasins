@@ -1,18 +1,18 @@
   
-       
+         
 class EulerIntegrator(object):
     
     gpu_source_template = """
             __device__ inline void calculateStep(float &x, float &y, float &vx, float &vy) {
-                float nx, ny, nvx, nvy;
+                float ax, ay;
                 
-                diff_eq(nx, ny, nvx, nvy, x, y, vx, vy);
+                diff_eq(ax, ay, x, y, vx, vy);
         
-                vx = vx + nvx * dt;
-                vy = vy + nvy * dt;
+                vx = vx + ax * dt;
+                vy = vy + ay * dt;
                 
-                x = x + nx * dt;
-                y = y + ny * dt;                
+                x = x + vx * dt;
+                y = y + vy * dt;                
             }
         """
     
