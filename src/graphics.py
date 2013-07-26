@@ -8,6 +8,7 @@ class BasicImageGenerator(object):
     RGB_COLOR_SIZE = 255.0
 
     def __init__(self, r, g, b):
+        self.antialiasing = False   # if True image will be 2x smaller
         self.no_data_color = (0, 0, 0)
         self.base_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
 
@@ -24,6 +25,9 @@ class BasicImageGenerator(object):
             for j, color_number in enumerate(row):
                 pixels[j, i] = self._colorize_pixel(color_number)
 
+        if self.antialiasing:
+            image = image.resize((width / 2, height / 2), Image.ANTIALIAS)
+        
         image.save(file_name + ".png", "PNG")
 
     def _colorize_pixel(self, color_number):
