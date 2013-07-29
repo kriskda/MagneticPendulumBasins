@@ -7,7 +7,7 @@ import math
 
  
 def main():
-    magnets_example = 1
+    magnets_example = 2
     
     if magnets_example == 1:
         # Parameters: pos_x, pos_y, magnet strength constant
@@ -52,13 +52,13 @@ def main():
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
-    basins_generator = BasinsGenerator(20, 2000)
+    basins_generator = BasinsGenerator(20, 4000)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 50, 0.4, 2)   
+    basins_generator.calculate_basins([0, 0], 400, 0.4, 5)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 

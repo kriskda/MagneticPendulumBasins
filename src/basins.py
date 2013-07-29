@@ -121,10 +121,11 @@ class BasinsGenerator(object):
         self.cuda_context.detach() 
         
     def _save_data(self):
-        is_nodata_pixels = -1 in numpy.reshape(self.result_data, self.resolution * self.resolution)
+        reshaped_array = numpy.reshape(self.result_data, self.resolution * self.resolution).tolist()		
+        is_nodata_pixels = -1 in reshaped_array
  
         if is_nodata_pixels:
-            print "  WARNING: some pixels could not be assignet to magnet"
+            print "  WARNING: %s pixels could not be assignet to magnet" % (reshaped_array.count(-1))
         
         self.result_data = map(lambda x: map(int, x), self.result_data)
    
