@@ -58,7 +58,7 @@ def main():
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
-    basins_generator = BasinsGenerator(20, 2000)
+    basins_generator = BasinsGenerator(200, 2000)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
