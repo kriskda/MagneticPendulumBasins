@@ -23,7 +23,7 @@ class BasinsGenerator(object):
                 yOld = y;
             }
             
-            __global__ void basins(float posx0[N][N], float posy0[N][N], float velx0[N][N], float vely0[N][N], float cudaResult[N][N], float trackLength[N][N], float kernelSimTime) {               
+            __global__ void basins(float posx0[N][N], float posy0[N][N], float velx0[N][N], float vely0[N][N], float trackLength[N][N], float resultData[N][N], float kernelSimTime) {               
                 const int idx = threadIdx.x + blockDim.x * blockIdx.x;
                 const int idy = threadIdx.y + blockDim.y * blockIdx.y;
 
@@ -42,15 +42,15 @@ class BasinsGenerator(object):
                     calculateTrackLength(d, x, y, xOld, yOld);
                     
                     t += dt;                      
-                } while (t <= kernelSimTime);
-
-                cudaResult[idx][idy] = determineMagnet(x, y, %sf);
+                } while (t <= kernelSimTime);               
 
                 posx0[idx][idy] = x;
                 posy0[idx][idy] = y;                
                 velx0[idx][idy] = vx;
                 vely0[idx][idy] = vy;  
-                trackLength[idx][idy] = d;              
+                
+                trackLength[idx][idy] = d;     
+                resultData[idx][idy] = determineMagnet(x, y, %sf);                         
             }
         """
     
@@ -110,14 +110,14 @@ class BasinsGenerator(object):
                       cuda.InOut(pos0[1]), 
                       cuda.InOut(vel0[0]), 
                       cuda.InOut(vel0[1]), 
-                      cuda.Out(self.result_data), 
-                      cuda.Out(self.track_length), 
+                      cuda.InOut(self.track_length), 
+                      cuda.Out(self.result_data),                       
                       numpy.float32(kernel_sim_time),
                       block = (self.THREADS_PER_BLOCK, self.THREADS_PER_BLOCK, 1), 
                       grid = (self.resolution / self.THREADS_PER_BLOCK, self.resolution / self.THREADS_PER_BLOCK))
                         
             self._deactivate_cuda() 
-                               
+                                                             
             time = time + kernel_sim_time
             counter = counter + 1
  
@@ -142,11 +142,11 @@ class BasinsGenerator(object):
             print "  WARNING: %s pixels could not be assignet to magnet" % (reshaped_array.count(-1))
         
         self.result_data = map(lambda x: map(int, x), self.result_data)
-   
+       
     def draw_basins(self, file_name):
         print "> Generating image"
         
-        self.image_generator.generate_image(file_name, self.result_data, len(self.pendulum_model.magnets))
+        self.image_generator.generate_image(file_name, self.result_data, self.track_length, len(self.pendulum_model.magnets))
     
     
     

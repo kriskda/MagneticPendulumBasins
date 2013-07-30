@@ -1,13 +1,13 @@
 from models import *
 from integrators import EulerIntegrator
-from graphics import BasicImageGenerator
+from graphics import BasicImageGenerator, AdvancedImageGenerator
 from basins import BasinsGenerator
 
 import math
 
  
 def main():
-    magnets_example = 5
+    magnets_example = 1
     
     if magnets_example == 1:
         # Parameters: pos_x, pos_y, magnet strength constant
@@ -39,32 +39,33 @@ def main():
             
         magnets.append(MagnetModel(0.0, 0.0, 0.1))  
     elif magnets_example == 5:
-        magnet1 = MagnetModel(1.0, 0.0, 1.5)
-        magnet2 = MagnetModel(-1.0, -1.0, 1.5)
-        magnet3 = MagnetModel(-1.0, 1.0, 1.5)
+        magnet1 = MagnetModel(1.0, 0.0, 0.5)
+        magnet2 = MagnetModel(-1.0, -1.0, 0.5)
+        magnet3 = MagnetModel(-1.0, 1.0, 0.5)
  
         magnets = [magnet1, magnet2, magnet3]      
     
 
     # Parameters: friction, gravity_pullback, plane_distance
-    pendulum = PendulumModel(0.3, 0.5, 0.25)
+    pendulum = PendulumModel(0.2, 0.5, 0.1)
     pendulum.magnets = magnets 
 
     # Parameters: time_step
     integrator = EulerIntegrator(0.01)  
     
     # Paramaters: r, g, b - startign color definition
-    image_generator = BasicImageGenerator(255, 0, 0)
+    #image_generator = BasicImageGenerator(255, 0, 0)
+    image_generator = AdvancedImageGenerator(255, 0, 0)
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
-    basins_generator = BasinsGenerator(200, 2000)
+    basins_generator = BasinsGenerator(5, 800)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 50, 0.4, 2)   
+    basins_generator.calculate_basins([0, 0], 50, 0.2, 25)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 
