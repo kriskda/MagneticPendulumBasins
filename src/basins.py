@@ -17,7 +17,7 @@ class BasinsGenerator(object):
     
     main_source_template = """
             __device__ inline void calculateTrackLength(float &d, float &x, float &y, float &xOld, float &yOld) {
-                d += sqrt((x + xOld) * (x + xOld) + (y + yOld) * (y + yOld));
+                d += sqrt((x - xOld) * (x - xOld) + (y - yOld) * (y - yOld));
                 
                 xOld = x;
                 yOld = y;

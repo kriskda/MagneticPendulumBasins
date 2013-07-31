@@ -85,7 +85,7 @@ class AdvancedImageGenerator(ImageGenerator):
                     if color == color_number:
                         temp.append(track_length[i][j]) 
 
-            max_length = sorted(temp)[len(temp) - 5]
+            max_length = sorted(temp)[len(temp) - 1]
 
             self.max_track_length.append(max_length)    
 
