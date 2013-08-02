@@ -21,14 +21,19 @@ class ImageGenerator(object):
         image = Image.new("RGB", (width, height))
         pixels = image.load()       
 
+        print "  Adding pixels...",
         for i, row in enumerate(result_data):
             for j, color_number in enumerate(row):
-                pixels[j, i] = self._colorize_pixel(color_number, track_length[i][j])
+                pixels[i, j] = self._colorize_pixel(color_number, track_length[i][j])
 
+        print "done"
+        
         if self.antialiasing:
             image = image.resize((width / 2, height / 2), Image.ANTIALIAS)
         
+        print "  Saving image...",
         image.save(file_name + ".png", "PNG")
+        print "done"
 
     def _colorize_pixel(self, color_number, track_value):
         pass
@@ -76,7 +81,6 @@ class AdvancedImageGenerator(ImageGenerator):
         super(AdvancedImageGenerator, self).generate_image(file_name, result_data, track_length, number_of_colors)
     
     def _calculate_max_track_length(self, result_data, track_length, number_of_colors):
-        
         for color in range(number_of_colors):
 
             temp = []
