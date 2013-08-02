@@ -99,7 +99,7 @@ class BasinsGenerator(object):
         iterations = sim_time / kernel_sim_time
         
         while (time < sim_time):
-            print "  Kernel execution step %s/%s" % (counter, iterations) 
+            print "  Kernel execution step %s/%s..." % (counter, iterations), 
             
             self._initalize_cuda() 
         
@@ -120,6 +120,8 @@ class BasinsGenerator(object):
                                                              
             time = time + kernel_sim_time
             counter = counter + 1
+            
+            print "done"
  
         self._save_data()
     

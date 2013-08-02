@@ -22,7 +22,7 @@ def main():
         
         for i in range(1, 7):
             angle = i * math.pi / 3
-            magnets.append(MagnetModel(math.cos(angle), math.sin(angle), 0.5)) 
+            magnets.append(MagnetModel(math.cos(angle), math.sin(angle), 1.5)) 
             
         magnets.append(MagnetModel(0.0, 0.0, 0.1))
     elif magnets_example == 3:
@@ -54,8 +54,8 @@ def main():
     integrator = EulerIntegrator(0.01)  
     
     # Paramaters: r, g, b - startign color definition
-    image_generator = BasicImageGenerator(255, 0, 0)
-    #image_generator = AdvancedImageGenerator(255, 0, 0)
+    #image_generator = BasicImageGenerator(255, 0, 0)
+    image_generator = AdvancedImageGenerator(255, 0, 0)
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
@@ -65,7 +65,7 @@ def main():
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 10, 0.2, 2)   
+    basins_generator.calculate_basins([0, 0], 30, 0.2, 1)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 
