@@ -1,4 +1,4 @@
-from models import *
+from models import MagnetModel, PendulumModel
 from integrators import EulerIntegrator
 from graphics import BasicImageGenerator, AdvancedImageGenerator
 from basins import BasinsGenerator
@@ -7,7 +7,7 @@ import math
 
  
 def main():
-    magnets_example = 3
+    magnets_example = 7
     
     if magnets_example == 1:
         # Parameters: pos_x, pos_y, magnet strength constant
@@ -27,7 +27,7 @@ def main():
         magnets.append(MagnetModel(0.0, 0.0, 0.1))
     elif magnets_example == 3:
         magnet1 = MagnetModel(1.0, 1.0, 1.5)
-        magnet2 = MagnetModel(-1.0, -1.0, 1.5)
+        magnet2 = MagnetModel(-2.0, -2.0, 1.5)
   
         magnets = [magnet1, magnet2]
     elif magnets_example == 4:
@@ -44,6 +44,18 @@ def main():
         magnet3 = MagnetModel(-1.0, 1.0, 0.5)
  
         magnets = [magnet1, magnet2, magnet3]      
+    elif magnets_example == 6:
+        magnet1 = MagnetModel(1.0, 0.0, 0.5)
+        magnet2 = MagnetModel(-2.0, -2.0, 0.5)
+        magnet3 = MagnetModel(-1.0, 1.0, 0.5)
+ 
+        magnets = [magnet1, magnet2, magnet3] 
+    elif magnets_example == 7:
+        magnet1 = MagnetModel(1.0, 1.0, 0.5)
+        magnet2 = MagnetModel(0.0, 0.0, 0.5)
+        magnet3 = MagnetModel(-1.0, -1.0, 0.5)
+ 
+        magnets = [magnet1, magnet2, magnet3]         
     
 
     # Parameters: friction, gravity_pullback, plane_distance
@@ -59,13 +71,13 @@ def main():
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
-    basins_generator = BasinsGenerator(5, 2000)
+    basins_generator = BasinsGenerator(5, 400)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 30, 0.2, 1)   
+    basins_generator.calculate_basins([0, 0], 30, 0.2, 30)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 

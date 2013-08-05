@@ -31,8 +31,8 @@ class ImageGenerator(object):
         if self.antialiasing:
             image = image.resize((width / 2, height / 2), Image.ANTIALIAS)
         
-        print "  Saving image...",
-        image.save(file_name + ".png", "PNG")
+        print "  Saving image...",        
+        image.transpose(Image.FLIP_TOP_BOTTOM).save(file_name + ".png", "PNG")
         print "done"
 
     def _colorize_pixel(self, color_number, track_value):
