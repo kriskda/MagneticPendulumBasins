@@ -7,7 +7,7 @@ import math
 
  
 def main():
-    magnets_example = 7
+    magnets_example = 5
     
     if magnets_example == 1:
         # Parameters: pos_x, pos_y, magnet strength constant

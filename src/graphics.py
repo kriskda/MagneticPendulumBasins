@@ -1,7 +1,6 @@
 import Image
 import colorsys  
-import math
-   
+  
 
 class ImageGenerator(object):
     
@@ -46,24 +45,22 @@ class ImageGenerator(object):
         self.color_list = []
         
         for i in range(0, number_of_colors):
-            base_hue = self.base_hsv[0]
-            base_saturation = self.base_hsv[1]
-            base_value = self.base_hsv[2]        
+            base_hue, base_saturation, base_value = self.base_hsv      
             
-            new_hue = base_hue + ((240 / number_of_colors) * i % 240)
-            new_rgb_color = colorsys.hsv_to_rgb(new_hue / 240, base_saturation, base_value)
-    
-            r = int(self.RGB_COLOR_SIZE * new_rgb_color[0])
-            g = int(self.RGB_COLOR_SIZE * new_rgb_color[1])
-            b = int(self.RGB_COLOR_SIZE * new_rgb_color[2])
-            
+            new_hue = (base_hue + ((240 / number_of_colors) * i % 240)) / 240
+            new_rgb_color = colorsys.hsv_to_rgb(new_hue, base_saturation, base_value)
+            r, g, b = self._correct_rgb_color(new_rgb_color)
+ 
             self.color_list.append((r, g, b))
 
- 
+    def _correct_rgb_color(self, rgb_color):
+        return map(lambda x: int(self.RGB_COLOR_SIZE * x), rgb_color)
+    
+     
 class BasicImageGenerator(ImageGenerator):
 
     def _colorize_pixel(self, color_number, track_value):
-
+ 
         if color_number == -1:
             return self.no_data_color
         else:
@@ -74,7 +71,7 @@ class AdvancedImageGenerator(ImageGenerator):
     
     def __init__(self, r, g, b):
         super(AdvancedImageGenerator, self).__init__(r, g, b)
-        self.max_track_length = []
+        self.max_tracks_length = []
     
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
         self._calculate_max_track_length(result_data, track_length, number_of_colors)        
@@ -91,29 +88,24 @@ class AdvancedImageGenerator(ImageGenerator):
 
             max_length = sorted(temp)[len(temp) - 1]
 
-            self.max_track_length.append(max_length)    
+            self.max_tracks_length.append(max_length)    
 
     def _colorize_pixel(self, color_number, track_value):
 
         if color_number == -1:
             return self.no_data_color
         else:
-            return self._linear_color_value(self.color_list[color_number], track_value, self.max_track_length[color_number])
+            return self._get_color_value(self.color_list[color_number], track_value, self.max_tracks_length[color_number])
 
-    def _linear_color_value(self, color, track_value, max_track):
-        r, g, b = color
-
-        color_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
+    def _get_color_value(self, color, track_value, max_track):
+        color_hsv = colorsys.rgb_to_hsv(color[0] / self.RGB_COLOR_SIZE, color[1] / self.RGB_COLOR_SIZE, color[2] / self.RGB_COLOR_SIZE) # base color 
 
         new_value = 1 - (track_value / max_track)
         #new_value = 1 / math.exp(math.log(256) / max_track**2 * track_value**2)
 
         new_rgb_color = colorsys.hsv_to_rgb(color_hsv[0], color_hsv[1], new_value)
-        
-        r = int(self.RGB_COLOR_SIZE * new_rgb_color[0])
-        g = int(self.RGB_COLOR_SIZE * new_rgb_color[1])
-        b = int(self.RGB_COLOR_SIZE * new_rgb_color[2])
-        
+        r, g, b = self._correct_rgb_color(new_rgb_color)
+     
         return (r, g, b)
         
                                 

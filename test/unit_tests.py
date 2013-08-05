@@ -165,9 +165,9 @@ class TestBasicImageGenerator(unittest.TestCase):
     def test_image_generation_1(self):
         number_of_colors = 3
         test_data = [[0, 2, 1], [1, 0, 1], [1, 2, 0]]
-        
+
         self.image_generator.generate_image("test_image_1", test_data, [], number_of_colors)
-        
+
         self.assertEqual(len(self.image_generator.color_list), number_of_colors)
        
     def test_image_generation_2(self): 
