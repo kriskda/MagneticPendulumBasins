@@ -1,5 +1,6 @@
 import Image
 import colorsys  
+import numpy
   
 
 class ImageGenerator(object):
@@ -8,23 +9,22 @@ class ImageGenerator(object):
 
     def __init__(self, r, g, b):
         self.antialiasing = False   # if True image will be 2x smaller
-        self.no_data_color = (0, 0, 0)
+        self.no_data_color = int('ff000000', 16)   # black color
         self.base_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
 
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
         self._generate_color_list(number_of_colors)
-        
+
         width = len(result_data)
         height = len(result_data[0])
 
-        image = Image.new("RGB", (width, height))
-        pixels = image.load()       
-
         print "  Adding pixels...",
-        for i, row in enumerate(result_data):
-            for j, color_number in enumerate(row):
-                pixels[i, j] = self._colorize_pixel(color_number, track_length[i][j])
 
+        vect = numpy.vectorize(self._colorize_pixel, otypes=[numpy.uint32])
+        pixels = vect(result_data, track_length)
+
+        image = Image.frombuffer('RGBA', (width, height), pixels, 'raw', 'RGBA', 0, 1)        
+        
         print "done"
         
         if self.antialiasing:
@@ -43,15 +43,17 @@ class ImageGenerator(object):
     '''
     def _generate_color_list(self, number_of_colors):
         self.color_list = []
-        
+            
         for i in range(0, number_of_colors):
             base_hue, base_saturation, base_value = self.base_hsv      
             
             new_hue = (base_hue + ((240 / number_of_colors) * i % 240)) / 240
             new_rgb_color = colorsys.hsv_to_rgb(new_hue, base_saturation, base_value)
             r, g, b = self._correct_rgb_color(new_rgb_color)
- 
-            self.color_list.append((r, g, b))
+
+            int_color = int('ff%02x%02x%02x' % (b, g, r), 16)
+
+            self.color_list.append(int_color)
 
     def _correct_rgb_color(self, rgb_color):
         return map(lambda x: int(self.RGB_COLOR_SIZE * x), rgb_color)
@@ -59,8 +61,7 @@ class ImageGenerator(object):
      
 class BasicImageGenerator(ImageGenerator):
 
-    def _colorize_pixel(self, color_number, track_value):
- 
+    def _colorize_pixel(self, color_number, track_value):        
         if color_number == -1:
             return self.no_data_color
         else:
@@ -105,7 +106,7 @@ class AdvancedImageGenerator(ImageGenerator):
 
         new_rgb_color = colorsys.hsv_to_rgb(color_hsv[0], color_hsv[1], new_value)
         r, g, b = self._correct_rgb_color(new_rgb_color)
-     
-        return (r, g, b)
+
+        return int('ff%02x%02x%02x' % (b, g, r), 16)
         
                                 

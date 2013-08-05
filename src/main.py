@@ -71,13 +71,13 @@ def main():
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
-    basins_generator = BasinsGenerator(5, 1000)
+    basins_generator = BasinsGenerator(5, 2000)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 50, 0.2, 10)   
+    basins_generator.calculate_basins([0, 0], 20, 0.2, 2)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 

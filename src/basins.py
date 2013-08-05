@@ -23,7 +23,7 @@ class BasinsGenerator(object):
                 yOld = y;
             }
             
-            __global__ void basins(float posx0[N][N], float posy0[N][N], float velx0[N][N], float vely0[N][N], float trackLength[N][N], float resultData[N][N], float kernelSimTime) {               
+            __global__ void basins(float posx0[N][N], float posy0[N][N], float velx0[N][N], float vely0[N][N], float trackLength[N][N], int resultData[N][N], float kernelSimTime) {               
                 const int idx = threadIdx.x + blockDim.x * blockIdx.x;
                 const int idy = threadIdx.y + blockDim.y * blockIdx.y;
 
@@ -81,7 +81,7 @@ class BasinsGenerator(object):
         velx0 = numpy.tile(vel0[0], (self.resolution, self.resolution)).astype(numpy.float32)
         vely0 = numpy.tile(vel0[1], (self.resolution, self.resolution)).astype(numpy.float32)     
         
-        self.result_data = numpy.zeros((self.resolution, self.resolution)).astype(numpy.float32)
+        self.result_data = numpy.zeros((self.resolution, self.resolution)).astype(numpy.int32)
         self.track_length = numpy.zeros((self.resolution, self.resolution)).astype(numpy.float32)        
 
         self._do_cuda_calculation([posx0, posy0], [velx0, vely0], sim_time, kernel_sim_time)
@@ -142,9 +142,7 @@ class BasinsGenerator(object):
  
         if is_nodata_pixels:
             print "  WARNING: %s pixels could not be assignet to magnet" % (reshaped_array.count(-1))
-        
-        self.result_data = map(lambda x: map(int, x), self.result_data)
-       
+
     def draw_basins(self, file_name):
         print "> Generating image"
         
