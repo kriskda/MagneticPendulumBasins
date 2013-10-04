@@ -48,12 +48,12 @@ def main():
         magnet1 = MagnetModel(1.0, 0.0, 0.5)
         magnet2 = MagnetModel(-2.0, -2.0, 0.5)
         magnet3 = MagnetModel(-1.0, 1.0, 0.5)
- 
+  
         magnets = [magnet1, magnet2, magnet3] 
     elif magnets_example == 7:
-        magnet1 = MagnetModel(1.0, 1.0, 0.5)
-        magnet2 = MagnetModel(0.0, 0.0, 0.5)
-        magnet3 = MagnetModel(-1.0, -1.0, 0.5)
+        magnet1 = MagnetModel(1.0, 0.0, 0.5)
+        magnet2 = MagnetModel(-1.0, 0.866, 0.5)
+        magnet3 = MagnetModel(-1.0, -0.866, 0.5)
  
         magnets = [magnet1, magnet2, magnet3]         
     
@@ -71,13 +71,13 @@ def main():
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size
-    basins_generator = BasinsGenerator(5, 400)
+    basins_generator = BasinsGenerator(5, 1000)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 30, 0.2, 30)   
+    basins_generator.calculate_basins([0, 0], 50, 0.2, 10)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 
