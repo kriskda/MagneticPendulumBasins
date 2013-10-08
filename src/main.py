@@ -77,7 +77,7 @@ def main():
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta, kernel sim time
-    basins_generator.calculate_basins([0, 0], 20, 0.2, 2)   
+    basins_generator.calculate_basins([0, 0], 1, 0.2, 1)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 
