@@ -9,7 +9,7 @@ class ImageGenerator(object):
 
     def __init__(self, r, g, b):
         self.antialiasing = False   # if True image will be 2x smaller
-        self.no_data_color = int('ff000000', 16)   # black color
+        self.no_data_color = 4278190080L   # black color
         self.base_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
 
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
