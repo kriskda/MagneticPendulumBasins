@@ -6,7 +6,7 @@ import numpy
 class ImageGenerator(object):
     
     RGB_COLOR_SIZE = 255.0
-
+ 
     def __init__(self, r, g, b):
         self.antialiasing = False   # if True image will be 2x smaller
         self.no_data_color = 4278190080L   # black color
@@ -75,7 +75,7 @@ class AdvancedImageGenerator(ImageGenerator):
         self.max_tracks_length = []
     
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
-        self._calculate_max_track_length(result_data, track_length, number_of_colors)       
+        self._calculate_max_track_length(result_data, track_length, number_of_colors)      
         super(AdvancedImageGenerator, self).generate_image(file_name, result_data, track_length, number_of_colors)
     
     def _calculate_max_track_length(self, result_data, track_length, number_of_colors):
