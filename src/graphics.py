@@ -43,8 +43,7 @@ class ImageGenerator(object):
     '''
     def _generate_color_list(self, number_of_colors):
         self.color_list = []
-        self.rgb_color_list = []
-            
+      
         for i in range(0, number_of_colors):
             base_hue, base_saturation, base_value = self.base_hsv      
             
@@ -54,7 +53,6 @@ class ImageGenerator(object):
 
             int_color = int('ff%02x%02x%02x' % (b, g, r), 16)
 
-            self.rgb_color_list.append((r, g, b))
             self.color_list.append(int_color)
 
     def _correct_rgb_color(self, rgb_color):
@@ -95,17 +93,15 @@ class AdvancedImageGenerator(ImageGenerator):
         if color_number == -1:
             return self.no_data_color
         else:
-            return self._get_color_value(self.rgb_color_list[color_number], track_value, self.max_tracks_length[color_number])
+            return self._get_color_value(self.color_list[color_number], track_value, self.max_tracks_length[color_number])
 
     def _get_color_value(self, color, track_value, max_track):
-        color_hsv = colorsys.rgb_to_hsv(color[0] / self.RGB_COLOR_SIZE, color[1] / self.RGB_COLOR_SIZE, color[2] / self.RGB_COLOR_SIZE) # base color 
+        scalefactor = 1 - (track_value / max_track)
 
-        new_value = 1 - (track_value / max_track)
-        #new_value = 1 / math.exp(math.log(256) / max_track**2 * track_value**2)
+        b = int( ((color >> 16) & 0xFF) * scalefactor ) << 16
+        g = int( ((color >> 8) & 0xFF) * scalefactor ) << 8
+        r = int( (color & 0xFF) * scalefactor )
 
-        new_rgb_color = colorsys.hsv_to_rgb(color_hsv[0], color_hsv[1], new_value)
-        r, g, b = self._correct_rgb_color(new_rgb_color)
-
-        return int('ff%02x%02x%02x' % (b, g, r), 16)
+        return 4278190080L + b + g + r  #  alpha + blue + green + red 
         
                                 
