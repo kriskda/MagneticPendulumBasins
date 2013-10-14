@@ -31,7 +31,7 @@ class ImageGenerator(object):
             image = image.resize((width / 2, height / 2), Image.ANTIALIAS)
         
         print "  Saving image...",        
-        image.transpose(Image.FLIP_TOP_BOTTOM).save(file_name + ".png", "PNG")
+        image.rotate(90).save(file_name + ".png", "PNG")
         print "done"
 
     def _colorize_pixel(self, color_number, track_value):
