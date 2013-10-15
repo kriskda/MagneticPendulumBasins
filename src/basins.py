@@ -146,6 +146,7 @@ class BasinsGenerator(object):
     def draw_basins(self, file_name):
         print "> Generating image"
         
+        self.image_generator.size = self.size
         self.image_generator.generate_image(file_name, self.result_data, self.track_length, len(self.pendulum_model.magnets))
     
     

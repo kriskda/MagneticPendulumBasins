@@ -1,13 +1,15 @@
-import Image
+import Image, ImageDraw
 import colorsys  
 import numpy
-  
+
 
 class ImageGenerator(object):
     
     RGB_COLOR_SIZE = 255.0
  
     def __init__(self, r, g, b):
+        self.size = 0   
+        self.draw_grid = False
         self.antialiasing = False   # if True image will be 2x smaller
         self.no_data_color = 4278190080L   # black color
         self.base_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
@@ -23,7 +25,10 @@ class ImageGenerator(object):
         vect = numpy.vectorize(self._colorize_pixel, otypes=[numpy.uint32])
         pixels = vect(result_data, track_length)
 
-        image = Image.frombuffer('RGBA', (width, height), pixels, 'raw', 'RGBA', 0, 1)        
+        image = Image.frombuffer('RGBA', (width, height), pixels, 'raw', 'RGBA', 0, 1)   
+        
+        if self.draw_grid:   
+            image = GridGenerator.add_grid(self.size, image)  
         
         print "done"
         
@@ -104,4 +109,46 @@ class AdvancedImageGenerator(ImageGenerator):
 
         return 4278190080L + b + g + r  #  alpha + blue + green + red 
         
+                                  
+class GridGenerator(object):
+    
+    ''' We assume here that input image is square i.e. aspect ratio is one '''
+    @staticmethod
+    def add_grid(size, image):
+        draw = ImageDraw.Draw(image) 
+        
+        width = image.size[0]
+        height = image.size[1]
+        
+        if width != height:
+            print "  Image supposed to have aspect ration equal one"
+             
+            return image   
+                 
+        white_color = "rgb(255,255,255)"
+        #gray_color = "rgb(100,100,100)"        
+ 
+        grid_size = width / size
+        cursor_plus = width / 2
+        cursor_minus = cursor_plus
+        
+        ''' Vertical & horizontal cross lines '''
+        draw.line((0, width / 2, height, width / 2), fill = white_color)
+        draw.line((height / 2, 0, height / 2, width), fill = white_color) 
+                
+        while (cursor_plus < width):
+            cursor_plus = cursor_plus + grid_size
+            cursor_minus = cursor_minus - grid_size
+            
+            ''' Grid vertical lines '''
+            draw.line((0, cursor_plus, height, cursor_plus), fill = white_color)
+            draw.line((0, cursor_minus, height, cursor_minus), fill = white_color)
+            
+            ''' Grid horizontal lines '''
+            draw.line((cursor_plus, 0, cursor_plus, width), fill = white_color) 
+            draw.line((cursor_minus, 0, cursor_minus, width), fill = white_color)        
+
+        return image
                                 
+
+
