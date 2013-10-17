@@ -3,6 +3,7 @@ import colorsys
 import numpy
 
 
+
 class ImageGenerator(object):
     
     RGB_COLOR_SIZE = 255.0
@@ -17,17 +18,18 @@ class ImageGenerator(object):
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
         self._generate_color_list(number_of_colors)
 
-        numpy.savez( "test.npz", A = result_data, L = track_length)
-
-        width = len(result_data)
-        height = len(result_data[0])
+        width = result_data.shape[0]
+        height = result_data.shape[1]
 
         print "  Adding pixels...",
 
-        vect = numpy.vectorize(self._colorize_pixel, otypes=[numpy.uint32])
-        pixels = vect(result_data, track_length)
+        self.pixels = self.no_data_color * numpy.ones((width, height), dtype=numpy.uint32)
+        self._colorize_pixels(result_data, track_length)  
 
-        image = Image.frombuffer('RGBA', (width, height), pixels, 'raw', 'RGBA', 0, 1)   
+        #vect = numpy.vectorize(self._colorize_pixel, otypes=[numpy.uint32])
+        #pixels = vect(result_data, track_length)
+
+        image = Image.frombuffer('RGBA', (width, height), self.pixels, 'raw', 'RGBA', 0, 1)   
         
         if self.draw_grid:   
             image = GridGenerator.add_grid(self.size, image)  
@@ -41,7 +43,7 @@ class ImageGenerator(object):
         image.rotate(90).save(file_name + ".png", "PNG")
         print "done"
 
-    def _colorize_pixel(self, color_number, track_value):
+    def _colorize_pixels(self, result_data, track_value):  
         pass
     
     '''
@@ -54,7 +56,7 @@ class ImageGenerator(object):
         golden_ratio = 0.618033988749895
         hue, saturation, value = self.base_hsv
 
-        for i in range(0, number_of_colors):            
+        for i in range(number_of_colors):            
             rgb_color = colorsys.hsv_to_rgb(hue, saturation, value)
             r, g, b = self._correct_rgb_color(rgb_color)
 
@@ -71,43 +73,32 @@ class ImageGenerator(object):
      
 class BasicImageGenerator(ImageGenerator):
 
-    def _colorize_pixel(self, color_number, track_value):        
-        if color_number == -1:
-            return self.no_data_color
-        else:
-            return self.color_list[color_number]
+    def _colorize_pixels(self, result_data, track_length):      
+        number_of_colors = len(self.color_list)
+        
+        for i in range(number_of_colors): 
+            indices = numpy.where(result_data == i)  
+            self.pixels[indices] = self.color_list[i]
 
 
-class AdvancedImageGenerator(ImageGenerator):
-    
-    def __init__(self, r, g, b):
-        super(AdvancedImageGenerator, self).__init__(r, g, b)
-        self.max_tracks_length = []
-    
-    def generate_image(self, file_name, result_data, track_length, number_of_colors):
-        self._calculate_max_track_length(result_data, track_length, number_of_colors)      
-        super(AdvancedImageGenerator, self).generate_image(file_name, result_data, track_length, number_of_colors)
-    
-    def _calculate_max_track_length(self, result_data, track_length, number_of_colors):
-        for color in range(number_of_colors):
-            non_color_indices = numpy.where(result_data.flatten() != color)[0]   # indices of elements which will be set to zero
+class AdvancedImageGenerator(ImageGenerator):    
+
+    def _colorize_pixels(self, result_data, track_length):      
+        number_of_colors = len(self.color_list)
+        
+        for i in range(number_of_colors): 
+            indices = numpy.where(result_data == i)  
+            color = self.color_list[i]
             
-            color_track_length = track_length.flatten()
-            color_track_length[non_color_indices] = 0
+            tracks = track_length[indices]
+            max_track = tracks.max()
+            scale_factor = 1 - tracks / max_track
             
-            max_length = numpy.amax(color_track_length)
+            vect = numpy.vectorize(self._get_color_value, otypes=[numpy.uint32])
+            
+            self.pixels[indices] = vect(color, scale_factor)
 
-            self.max_tracks_length.append(max_length)    
-
-    def _colorize_pixel(self, color_number, track_value):
-        if color_number == -1:
-            return self.no_data_color
-        else:
-            return self._get_color_value(self.color_list[color_number], track_value, self.max_tracks_length[color_number])
-
-    def _get_color_value(self, color, track_value, max_track):
-        scalefactor = 1 - (track_value / max_track)
-
+    def _get_color_value(self, color, scalefactor):
         b = int( ((color >> 16) & 0xFF) * scalefactor ) << 16
         g = int( ((color >> 8) & 0xFF) * scalefactor ) << 8
         r = int( (color & 0xFF) * scalefactor )
