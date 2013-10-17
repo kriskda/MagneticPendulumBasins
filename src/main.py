@@ -7,7 +7,7 @@ import math
 
  
 def main():
-    magnets_example = 5
+    magnets_example = 3
     
     if magnets_example == 1:
         # Parameters: pos_x, pos_y, magnet strength constant
@@ -78,7 +78,7 @@ def main():
     basins_generator.image_generator = image_generator
    
     # Parameters: initial velocity vect, simulation time, delta x/y, kernel sim time
-    basins_generator.calculate_basins([0, 0], 50, 0.2, 2)   
+    basins_generator.calculate_basins([0, 0], 50, 0.2, 10)   
     
     # Parameters: file_name
     basins_generator.draw_basins("basins") 

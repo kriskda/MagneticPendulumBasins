@@ -17,6 +17,8 @@ class ImageGenerator(object):
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
         self._generate_color_list(number_of_colors)
 
+        numpy.savez( "test.npz", A = result_data, L = track_length)
+
         width = len(result_data)
         height = len(result_data[0])
 
@@ -48,18 +50,21 @@ class ImageGenerator(object):
     '''
     def _generate_color_list(self, number_of_colors):
         self.color_list = []
-      
-        for i in range(0, number_of_colors):
-            base_hue, base_saturation, base_value = self.base_hsv      
-            
-            new_hue = (base_hue + ((240 / number_of_colors) * i % 240)) / 240
-            new_rgb_color = colorsys.hsv_to_rgb(new_hue, base_saturation, base_value)
-            r, g, b = self._correct_rgb_color(new_rgb_color)
+
+        golden_ratio = 0.618033988749895
+        hue, saturation, value = self.base_hsv
+
+        for i in range(0, number_of_colors):            
+            rgb_color = colorsys.hsv_to_rgb(hue, saturation, value)
+            r, g, b = self._correct_rgb_color(rgb_color)
 
             int_color = int('ff%02x%02x%02x' % (b, g, r), 16)
 
             self.color_list.append(int_color)
-
+            
+            hue = hue + golden_ratio
+            hue = hue % 1
+            
     def _correct_rgb_color(self, rgb_color):
         return map(lambda x: int(self.RGB_COLOR_SIZE * x), rgb_color)
     
