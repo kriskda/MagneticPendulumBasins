@@ -68,11 +68,11 @@ def main():
     # Paramaters: r, g, b - first color definition
     #image_generator = BasicImageGenerator(255, 0, 0)
     image_generator = AdvancedImageGenerator(255, 0, 0)
-    image_generator.draw_grid = True
+    image_generator.draw_grid = False
     image_generator.antialiasing = True     # image will be 2x smaller
     
     # Parameters: size, image size
-    basins_generator = BasinsGenerator(5, 2000)
+    basins_generator = BasinsGenerator(5, 1200)
     basins_generator.pendulum_model = pendulum
     basins_generator.integrator = integrator
     basins_generator.image_generator = image_generator
