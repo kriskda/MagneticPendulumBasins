@@ -12,30 +12,26 @@ class ImageGenerator(object):
         self.size = 0   
         self.draw_grid = False
         self.antialiasing = False   # if True image will be 2x smaller
-        self.no_data_color = 4278190080L   # black color
+        self.no_data_color = [0, 0, 0, 255]
         self.base_hsv = colorsys.rgb_to_hsv(r / self.RGB_COLOR_SIZE, g / self.RGB_COLOR_SIZE, b / self.RGB_COLOR_SIZE) # base color 
 
     def generate_image(self, file_name, result_data, track_length, number_of_colors):
         self._generate_color_list(number_of_colors)
 
-        width = result_data.shape[0]
-        height = result_data.shape[1]
+        width, height = result_data.shape        
 
         print "  Adding pixels...",
-
-        self.pixels = self.no_data_color * numpy.ones((width, height), dtype=numpy.uint32)
-        self._colorize_pixels(result_data, track_length)  
-
-        #vect = numpy.vectorize(self._colorize_pixel, otypes=[numpy.uint32])
-        #pixels = vect(result_data, track_length)
-
-        image = Image.frombuffer('RGBA', (width, height), self.pixels, 'raw', 'RGBA', 0, 1)   
         
+        self.pixels = self.no_data_color * numpy.ones((width, height, 4), dtype=numpy.uint8)
+        self._colorize_pixels(result_data, track_length)  
+        
+        image = Image.fromarray((self.pixels).astype(numpy.uint8))   
+                
+        print "done"
+                
         if self.draw_grid:   
             image = GridGenerator.add_grid(self.size, image)  
-        
-        print "done"
-        
+                    
         if self.antialiasing:
             image = image.resize((width / 2, height / 2), Image.ANTIALIAS)
         
@@ -60,9 +56,7 @@ class ImageGenerator(object):
             rgb_color = colorsys.hsv_to_rgb(hue, saturation, value)
             r, g, b = self._correct_rgb_color(rgb_color)
 
-            int_color = int('ff%02x%02x%02x' % (b, g, r), 16)
-
-            self.color_list.append(int_color)
+            self.color_list.append([r, g, b, 255])
             
             hue = hue + golden_ratio
             hue = hue % 1
@@ -85,27 +79,24 @@ class AdvancedImageGenerator(ImageGenerator):
 
     def _colorize_pixels(self, result_data, track_length):      
         number_of_colors = len(self.color_list)
-        
+  
         for i in range(number_of_colors): 
             indices = numpy.where(result_data == i)  
-            color = self.color_list[i]
+            r, g, b, a = self.color_list[i]    
             
             tracks = track_length[indices]
-            max_track = tracks.max()
-            scale_factor = 1 - tracks / max_track
-            
-            vect = numpy.vectorize(self._get_color_value, otypes=[numpy.uint32])
-            
-            self.pixels[indices] = vect(color, scale_factor)
+   
+            scale_factor = 1 - tracks / tracks.max()
 
-    def _get_color_value(self, color, scalefactor):
-        b = int( ((color >> 16) & 0xFF) * scalefactor ) << 16
-        g = int( ((color >> 8) & 0xFF) * scalefactor ) << 8
-        r = int( (color & 0xFF) * scalefactor )
+            scaled = self.pixels[indices]
+            scaled[:, 0] = scale_factor * r
+            scaled[:, 1] = scale_factor * g
+            scaled[:, 2] = scale_factor * b
+            #scaled[:, 3] = a                    # no need for alpha, already set
 
-        return 4278190080L + b + g + r  #  alpha + blue + green + red 
-        
-                                  
+            self.pixels[indices] = scaled
+
+                            
 class GridGenerator(object):
     
     ''' We assume here that input image is square i.e. aspect ratio is one '''
