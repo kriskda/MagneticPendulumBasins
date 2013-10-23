@@ -1,3 +1,7 @@
+import numpy
+import colorsys 
+import math
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -6,107 +10,21 @@ from OpenGL.GL import shaders
 from OpenGL.arrays import vbo
 from OpenGLContext.arrays import *
 
-import numpy
-
-SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 600
-
-import colorsys 
-
 from models import MagnetModel, PendulumModel
 from integrators import EulerIntegrator
 from basins import BasinsGenerator
 
 
 
-class WindowView(object):
-
-    def __init__(self, result_data, track_length, number_of_colors):
-        glutInit()
-        glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        glutInitWindowPosition(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-        glutCreateWindow("Magnetic Pendulum Basins Visualizer")
-        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
-        glutDisplayFunc(self.draw)
-        #glutTimerFunc(30, self.timer, 30)
-
-        VERTEX_SHADER = shaders.compileShader("""#version 410 compatibility
-            varying vec4 vertex_color;
-             
-            void main() {
-                gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-                vertex_color = gl_Color;
-            }""", GL_VERTEX_SHADER)
-        
-        FRAGMENT_SHADER = shaders.compileShader("""#version 330
-            varying vec4 vertex_color;
-            
-            void main() {
-                gl_FragColor = vertex_color;
-            }""", GL_FRAGMENT_SHADER)
-        
-        self.shader = shaders.compileProgram(VERTEX_SHADER, FRAGMENT_SHADER)
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 600
 
 
-        self.texture = self._generate_texture(result_data, track_length, number_of_colors)        
- 
-        self._init_gl()
-        glutMainLoop()
-
-    def _init_gl(self):
-        glClearColor(1.0, 1.0, 1.0, 0.0)
-        glColor3f(0.0, 0.0, 0.0)
-        glPointSize(2.0)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluOrtho2D(-1.0, 1.0, -1.0, 1.0)
-
-    def _generate_texture(self, result_data, track_length, number_of_colors):
-        self._generate_color_list(number_of_colors)
-
-        width, height = result_data.shape   
-        
-        self.pixels = [0, 0, 0, 255] * numpy.ones((width, height, 4), dtype=numpy.uint8)
-        self._colorize_pixels(result_data, track_length) 
-        
-        texture = glGenTextures(1)
-        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
-        glBindTexture(GL_TEXTURE_2D, texture)
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
-        
-        return texture
-
-    def _setup_texture(self):
-        glEnable(GL_MULTISAMPLE)
-        glEnable(GL_TEXTURE_2D)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
-
-    def _draw_plane(self):
-        glBegin(GL_QUADS)
-        glTexCoord2f(0, 0)
-        glVertex2f(-1, -1)
-        glTexCoord2f(1, 0)
-        glVertex2f(1, -1)
-        glTexCoord2f(1, 1)
-        glVertex2f(1, 1)
-        glTexCoord2f(0, 1)
-        glVertex2f(-1, 1)
-        glEnd()
-
-    def draw(self):
-        #shaders.glUseProgram(self.shader)
-        
-        glClear(GL_COLOR_BUFFER_BIT)
- 
-        self._setup_texture()
-        self._draw_plane()
-        
-        glFlush()     
-        
-    ''' Some functions in my first prototype which presumably will be deleted as work progresses '''      
+''' Some functions in my first prototype which presumably will be deleted as work progresses '''  
+class DataConverter(object):
+    
+    NO_DATA_COLOR = [0, 0, 0, 255]  
+    
     def _correct_rgb_color(self, rgb_color):
         return map(lambda x: int(255.0 * x), rgb_color)
     
@@ -144,9 +62,129 @@ class WindowView(object):
             #scaled[:, 3] = a                    # no need for alpha, already set
 
             self.pixels[indices] = scaled
-    ''' End some functions '''
+
+    def generate_pixel_data(self, basins_generator, number_of_magnets):
+        self._generate_color_list(number_of_magnets)
+
+        width, height = basins_generator.result_data.shape   
+        
+        self.pixels = self.NO_DATA_COLOR * numpy.ones((width, height, 4), dtype=numpy.uint8)
+        self._colorize_pixels(basins_generator.result_data, basins_generator.track_length) 
+        
+        return width, height, self.pixels
+        
+
+class OpenGLvisualizer(object):
+    
+    def __init__(self, basins_generator, number_of_magnets):
+        self.basins_generator = basins_generator
+        self.number_of_magnets = number_of_magnets
+        self.is_control_points = True
+        
+        glutInit()
+        glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
+        glutInitWindowPosition(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        glutCreateWindow("Magnetic Pendulum Basins Visualizer")
+        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
+        glutDisplayFunc(self.draw)
+        glutKeyboardFunc(self._keyboard_action)
+        glutMouseFunc(self._mouse_action)
+
+        glClearColor(0.0, 0.0, 0.0, 0.0)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluOrtho2D(0.0, 1.0, 0.0, 1.0)
+        
+        glutMainLoop()
+      
+    def _keyboard_action(self, key, x, y):
+        if key == '\033':   # exit on Esc key         
+            exit()
+        elif key == 'r':
+            self._render_image()
+        elif key == 'c':       
+            self._control_points_action()     
+            
+    def _mouse_action(self, button, state, x, y):
+        print button
+        print state
+        print x
+        print y
+            
+    def _render_image(self):
+        self.basins_generator.calculate_basins([0, 0], 30, 0.2, 15)   
+        self._generate_texture()
+        glutPostRedisplay()   
+
+    def _control_points_action(self):
+        if self.is_control_points:
+            self.is_control_points = False
+        else:
+            self.is_control_points = True
+             
+        glutPostRedisplay()
+
+    def _generate_texture(self):    
+        width, height, self.pixels = DataConverter().generate_pixel_data(self.basins_generator, self.number_of_magnets)
+ 
+        texture = glGenTextures(1)
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
+        glBindTexture(GL_TEXTURE_2D, texture)
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
+
+    def draw(self):     
+        glClear(GL_COLOR_BUFFER_BIT)
+ 
+        self._setup_texture()
+        self._draw_plane()
+        
+        if self.is_control_points:
+            self._draw_control_points()
+        
+        glFlush()       
+        
+    def _setup_texture(self):
+        glEnable(GL_MULTISAMPLE)
+        glEnable(GL_TEXTURE_2D)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
+
+    def _draw_plane(self):
+        glColor3f(0.0, 0.0, 0.0)
+        
+        glBegin(GL_QUADS)
+        glTexCoord2f(1, 0)
+        glVertex2f(0, 0)
+        glTexCoord2f(1, 1)
+        glVertex2f(1, 0)
+        glTexCoord2f(0, 1)
+        glVertex2f(1, 1)
+        glTexCoord2f(0, 0)
+        glVertex2f(0, 1)
+        glEnd()  
+        
+    def _draw_control_points(self):
+        glColor3f(1.0, 1.0, 1.0)
+        
+        x1 = 0.5
+        y1 = 0.5
+        radius = 0.01
+        
+        glBegin(GL_TRIANGLE_FAN)
+        
+        glVertex3f(x1, y1, 0.5)
+        for angle in range(360):
+            rad = angle * math.pi / 180
+            glVertex3f(x1 + math.sin(rad) * radius, y1 + math.cos(rad) * radius, 0.5)
+ 
+        glEnd()      
+            
         
 if __name__ == "__main__":
+        print "Hit ESC key to quit, 'r' to render, and 'c' to hide / display control points"
+        
         magnet1 = MagnetModel(1.0, 0.0, 0.5)
         magnet2 = MagnetModel(-1.0, -1.0, 0.5)
         magnet3 = MagnetModel(-1.0, 1.0, 0.5)
@@ -162,8 +200,6 @@ if __name__ == "__main__":
         basins_generator.pendulum_model = pendulum
         basins_generator.integrator = integrator
 
-        basins_generator.calculate_basins([0, 0], 30, 0.2, 15)   
-
-        view = WindowView(basins_generator.result_data, basins_generator.track_length, len(magnets))  
+        visualizer = OpenGLvisualizer(basins_generator, len(magnets))  
     
               
