@@ -71,16 +71,86 @@ class DataConverter(object):
         return width, height, self.pixels
 
 
+class VisualizerController(object):
+    
+    def __init__(self, view):
+        self.view = view
+        self.is_control_points = True
+        self.is_lmb_magnet_pressed = False
+        self.dragged_magnet = None
+        
+    def keyboard_action(self, key, x, y):
+        if key == '\033':   # exit on Esc key         
+            exit()
+        elif key == 'r':
+            self.view.render_image()
+        elif key == 'c':       
+            self._toggle_control_points() 
+            
+    def mouse_click_action(self, button, state, win_x, win_y): 
+        if button == 0 and state == 0:  # LMB pressed
+            magnets = self.view.basins_generator.pendulum_model.magnets
+            self._lmb_pressed(win_x, win_y, magnets)
+            
+        elif button == 0 and state == 1:    # LMB released    
+            self._lmb_released() 
+
+    def mouse_move_action(self, win_x, win_y):
+        self._lmb_pressed_drag(win_x, win_y)
+        
+    ''' Converts screen coordinates to world '''
+    def _win_to_world_coords(self, win_x, win_y):
+        x = self.view.span * (2.0 * win_x / SCREEN_SIZE - 1)
+        y = self.view.span * (-2.0 * win_y / SCREEN_SIZE + 1)
+        
+        return (x, y)
+    
+    ''' Toggles on / off control points of magnets '''
+    def _toggle_control_points(self):
+        if self.is_control_points:
+            self.is_control_points = False
+        else:
+            self.is_control_points = True
+             
+        glutPostRedisplay()
+    
+    ''' If LMB pressed check if mouse is over one of the magnets '''
+    def _lmb_pressed(self, win_x, win_y, magnets):
+        x, y = self._win_to_world_coords(win_x, win_y)
+
+        for magnet in magnets:
+            pos_x, pos_y = magnet.pos_x, magnet.pos_y                
+            check_radius = math.sqrt((x - pos_x) * (x - pos_x) + (y - pos_y) * (y - pos_y))
+                
+            if check_radius <= self.view.magnet_radius:
+                self.is_lmb_magnet_pressed = True
+                self.dragged_magnet = magnet
+                break        
+    
+    def _lmb_released(self):
+        self.is_lmb_magnet_pressed = False
+    
+    ''' Changes position of selected (pressed) magnet '''
+    def _lmb_pressed_drag(self, win_x, win_y):
+        if self.is_lmb_magnet_pressed:
+            x, y = self._win_to_world_coords(win_x, win_y)
+        
+            if self.dragged_magnet != None:
+                self.dragged_magnet.pos_x = x
+                self.dragged_magnet.pos_y = y
+
+                glutPostRedisplay()
+    
+
 class OpenGLvisualizer(object):
     
     def __init__(self, basins_generator, number_of_magnets):
         self.basins_generator = basins_generator
         self.number_of_magnets = number_of_magnets
-        self.is_control_points = True
-        self.is_lmb_magnet_pressed = False
-        self.dragged_magnet = None
         self.magnet_radius = 0.05
         self.span = basins_generator.size / 2.0
+        
+        self.controller = VisualizerController(self)
         
         self._init_gl()
         
@@ -90,10 +160,11 @@ class OpenGLvisualizer(object):
         glutInitWindowPosition(SCREEN_SIZE / 2, SCREEN_SIZE / 2)
         glutCreateWindow("Magnetic Pendulum Basins Visualizer")
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
+        
         glutDisplayFunc(self.draw)
-        glutKeyboardFunc(self._keyboard_action)
-        glutMouseFunc(self._mouse_click_action)
-        glutMotionFunc(self._mouse_move_action)
+        glutKeyboardFunc(self.controller.keyboard_action)
+        glutMouseFunc(self.controller.mouse_click_action)
+        glutMotionFunc(self.controller.mouse_move_action)
 
         glClearColor(0.0, 0.0, 0.0, 0.0)
         glMatrixMode(GL_PROJECTION)
@@ -101,62 +172,13 @@ class OpenGLvisualizer(object):
                 
         gluOrtho2D(-self.span, self.span, -self.span, self.span)        
         glutMainLoop()
-      
-    def _win_to_world_coords(self, win_x, win_y):
-        x = self.span * (2.0 * win_x / SCREEN_SIZE - 1)
-        y = self.span * (-2.0 * win_y / SCREEN_SIZE + 1)
-        
-        return (x, y)
-      
-    def _keyboard_action(self, key, x, y):
-        if key == '\033':   # exit on Esc key         
-            exit()
-        elif key == 'r':
-            self._render_image()
-        elif key == 'c':       
-            self._control_points_action()     
-            
-    def _mouse_click_action(self, button, state, win_x, win_y): 
-        if button == 0 and state == 0:  # LMB pressed
-            x, y = self._win_to_world_coords(win_x, win_y)
-            
-            magnets = self.basins_generator.pendulum_model.magnets
-
-            for magnet in magnets:
-                pos_x, pos_y = magnet.pos_x, magnet.pos_y                
-                check_radius = math.sqrt((x - pos_x) * (x - pos_x) + (y - pos_y) * (y - pos_y))
-                
-                if check_radius <= self.magnet_radius:
-                    self.is_lmb_magnet_pressed = True
-                    self.dragged_magnet = magnet
-                    break
-
-        elif button == 0 and state == 1:    # LMB released            
-            self.is_lmb_magnet_pressed = False
-        
-    def _mouse_move_action(self, win_x, win_y):
-        if self.is_lmb_magnet_pressed:
-            x, y = self._win_to_world_coords(win_x, win_y)
-        
-            if self.dragged_magnet != None:
-                self.dragged_magnet.pos_x = x
-                self.dragged_magnet.pos_y = y
-
-                glutPostRedisplay()
-            
-    def _render_image(self):
+           
+    def render_image(self):
         self.basins_generator.calculate_basins([0, 0], 30, 0.2, 30)   
         self._generate_texture()
         glutPostRedisplay()   
 
-    def _control_points_action(self):
-        if self.is_control_points:
-            self.is_control_points = False
-        else:
-            self.is_control_points = True
-             
-        glutPostRedisplay()
-
+    ''' Generates magnetic pendulum basins texture ''' 
     def _generate_texture(self):    
         width, height, self.pixels = DataConverter().generate_pixel_data(self.basins_generator, self.number_of_magnets)
  
@@ -173,7 +195,7 @@ class OpenGLvisualizer(object):
         self._setup_texture()
         self._draw_plane()
         
-        if self.is_control_points:
+        if self.controller.is_control_points:
             self._draw_control_points()
         
         self._disable()
@@ -196,6 +218,7 @@ class OpenGLvisualizer(object):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
 
+    ''' Draws plane where basins texture is displayed '''
     def _draw_plane(self):
         glColor3f(0.0, 0.0, 0.0)
         
@@ -212,6 +235,7 @@ class OpenGLvisualizer(object):
 
         glEnd()  
         
+    ''' Draws control points used to drag magnets on screen '''    
     def _draw_control_points(self):
         magnets = self.basins_generator.pendulum_model.magnets
         
