@@ -79,6 +79,7 @@ class OpenGLvisualizer(object):
         self.is_control_points = True
         self.is_lmb_magnet_pressed = False
         self.dragged_magnet = None
+        self.magnet_radius = 0.05
         self.span = basins_generator.size / 2.0
         
         self._init_gl()
@@ -120,15 +121,12 @@ class OpenGLvisualizer(object):
             x, y = self._win_to_world_coords(win_x, win_y)
             
             magnets = self.basins_generator.pendulum_model.magnets
-            
-            radius = 0.05 # TBD change to variable
-            
+
             for magnet in magnets:
-                pos_x, pos_y = magnet.pos_x, magnet.pos_y
-                
+                pos_x, pos_y = magnet.pos_x, magnet.pos_y                
                 check_radius = math.sqrt((x - pos_x) * (x - pos_x) + (y - pos_y) * (y - pos_y))
                 
-                if check_radius <= radius:
+                if check_radius <= self.magnet_radius:
                     self.is_lmb_magnet_pressed = True
                     self.dragged_magnet = magnet
                     break
@@ -220,14 +218,14 @@ class OpenGLvisualizer(object):
         glColor3f(1.0, 1.0, 1.0)
         
         for magnet in magnets:            
-            x, y, z, radius = magnet.pos_x, magnet.pos_y, 0.5, 0.05
+            x, y, z = magnet.pos_x, magnet.pos_y, 0.5
             
             glBegin(GL_TRIANGLE_FAN)
             
             glVertex3f(x, y, z)
             for angle in range(360):
                 rad = angle * math.pi / 180
-                glVertex3f(x + math.sin(rad) * radius, y + math.cos(rad) * radius, z)
+                glVertex3f(x + math.sin(rad) * self.magnet_radius, y + math.cos(rad) * self.magnet_radius, z)
      
             glEnd()   
         
