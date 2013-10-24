@@ -112,7 +112,7 @@ class VisualizerController(object):
         else:
             self.is_control_points = True
              
-        glutPostRedisplay()
+        self.view.redisplay_window() 
     
     ''' If LMB pressed check if mouse is over one of the magnets '''
     def _lmb_pressed(self, win_x, win_y, magnets):
@@ -139,7 +139,7 @@ class VisualizerController(object):
                 self.dragged_magnet.pos_x = x
                 self.dragged_magnet.pos_y = y
 
-                glutPostRedisplay()
+                self.view.redisplay_window() 
     
 
 class OpenGLvisualizer(object):
@@ -162,6 +162,7 @@ class OpenGLvisualizer(object):
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
         
         glutDisplayFunc(self.draw)
+        
         glutKeyboardFunc(self.controller.keyboard_action)
         glutMouseFunc(self.controller.mouse_click_action)
         glutMotionFunc(self.controller.mouse_move_action)
@@ -176,7 +177,10 @@ class OpenGLvisualizer(object):
     def render_image(self):
         self.basins_generator.calculate_basins([0, 0], 30, 0.2, 30)   
         self._generate_texture()
-        glutPostRedisplay()   
+        self.redisplay_window()         
+
+    def redisplay_window(self):
+        glutPostRedisplay()  
 
     ''' Generates magnetic pendulum basins texture ''' 
     def _generate_texture(self):    
@@ -186,6 +190,10 @@ class OpenGLvisualizer(object):
         glPixelStorei(GL_UNPACK_ALIGNMENT,1)
         glBindTexture(GL_TEXTURE_2D, texture)
 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
 
     def draw(self):     
@@ -198,7 +206,7 @@ class OpenGLvisualizer(object):
         if self.controller.is_control_points:
             self._draw_control_points()
         
-        self._disable()
+        self._disable_gl()
         
         glFlush()       
         
@@ -212,10 +220,7 @@ class OpenGLvisualizer(object):
     def _setup_texture(self):
         glEnable(GL_MULTISAMPLE)
         glEnable(GL_TEXTURE_2D)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
 
     ''' Draws plane where basins texture is displayed '''
@@ -253,7 +258,7 @@ class OpenGLvisualizer(object):
      
             glEnd()   
         
-    def _disable(self):   
+    def _disable_gl(self):   
         glDisable(GL_POLYGON_SMOOTH)      
         glDisable(GL_BLEND)
         glDisable(GL_MULTISAMPLE)
