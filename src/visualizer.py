@@ -15,9 +15,7 @@ from integrators import EulerIntegrator
 from basins import BasinsGenerator
  
 
-SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 600
-
+SCREEN_SIZE = 600
 
 ''' Some functions in my first prototype which presumably will be deleted as work progresses '''  
 class DataConverter(object):
@@ -81,10 +79,14 @@ class OpenGLvisualizer(object):
         self.is_control_points = True
         self.is_lmb_magnet_pressed = False
         self.dragged_magnet = None
+        self.span = basins_generator.size / 2.0
         
+        self._init_gl()
+        
+    def _init_gl(self):
         glutInit()
-        glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        glutInitWindowPosition(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        glutInitWindowSize(SCREEN_SIZE, SCREEN_SIZE)
+        glutInitWindowPosition(SCREEN_SIZE / 2, SCREEN_SIZE / 2)
         glutCreateWindow("Magnetic Pendulum Basins Visualizer")
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
         glutDisplayFunc(self.draw)
@@ -95,11 +97,15 @@ class OpenGLvisualizer(object):
         glClearColor(0.0, 0.0, 0.0, 0.0)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        
-        self.span = basins_generator.size / 2.0
-        gluOrtho2D(-self.span, self.span, -self.span, self.span)
-        
+                
+        gluOrtho2D(-self.span, self.span, -self.span, self.span)        
         glutMainLoop()
+      
+    def _win_to_world_coords(self, win_x, win_y):
+        x = self.span * (2.0 * win_x / SCREEN_SIZE - 1)
+        y = self.span * (-2.0 * win_y / SCREEN_SIZE + 1)
+        
+        return (x, y)
       
     def _keyboard_action(self, key, x, y):
         if key == '\033':   # exit on Esc key         
@@ -111,8 +117,7 @@ class OpenGLvisualizer(object):
             
     def _mouse_click_action(self, button, state, win_x, win_y): 
         if button == 0 and state == 0:  # LMB pressed
-            x = self.span * (2.0 * win_x / SCREEN_WIDTH - 1)
-            y = self.span * (-2.0 * win_y / SCREEN_WIDTH + 1)
+            x, y = self._win_to_world_coords(win_x, win_y)
             
             magnets = self.basins_generator.pendulum_model.magnets
             
@@ -133,8 +138,7 @@ class OpenGLvisualizer(object):
         
     def _mouse_move_action(self, win_x, win_y):
         if self.is_lmb_magnet_pressed:
-            x = self.span * (2.0 * win_x / SCREEN_WIDTH - 1)
-            y = self.span * (-2.0 * win_y / SCREEN_WIDTH + 1)
+            x, y = self._win_to_world_coords(win_x, win_y)
         
             if self.dragged_magnet != None:
                 self.dragged_magnet.pos_x = x
@@ -236,7 +240,7 @@ class OpenGLvisualizer(object):
         
 if __name__ == "__main__":
         print "Hit ESC key to quit, 'r' to render, and 'c' to hide / display control points"
-        print "Drag magnets control points to change magnets position"
+        print "Drag magnet control points to change magnets position"
         print ""
         
         magnet1 = MagnetModel(1.0, 0.0, 0.5)
@@ -250,7 +254,7 @@ if __name__ == "__main__":
 
         integrator = EulerIntegrator(0.01)  
         
-        basins_generator = BasinsGenerator(5, 600)
+        basins_generator = BasinsGenerator(5, SCREEN_SIZE)
         basins_generator.pendulum_model = pendulum
         basins_generator.integrator = integrator
 
