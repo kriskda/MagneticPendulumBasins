@@ -149,6 +149,7 @@ class OpenGLvisualizer(object):
         self.number_of_magnets = number_of_magnets
         self.magnet_radius = 0.05
         self.span = basins_generator.size / 2.0
+        self.texture = None
         
         self.controller = VisualizerController(self)
         
@@ -159,7 +160,7 @@ class OpenGLvisualizer(object):
         glutInitWindowSize(SCREEN_SIZE, SCREEN_SIZE)
         glutInitWindowPosition(SCREEN_SIZE / 2, SCREEN_SIZE / 2)
         glutCreateWindow("Magnetic Pendulum Basins Visualizer")
-        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
+        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
         
         glutDisplayFunc(self.draw)
         
@@ -186,20 +187,19 @@ class OpenGLvisualizer(object):
     def _generate_texture(self):    
         width, height, self.pixels = DataConverter().generate_pixel_data(self.basins_generator, self.number_of_magnets)
  
-        texture = glGenTextures(1)
-        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
-        glBindTexture(GL_TEXTURE_2D, texture)
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        self.texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.texture)
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)        
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
 
     def draw(self):     
         glClear(GL_COLOR_BUFFER_BIT)
         
         self._setup_antialiasing()
+        
         self._setup_texture()
         self._draw_plane()
         
@@ -207,8 +207,8 @@ class OpenGLvisualizer(object):
             self._draw_control_points()
         
         self._disable_gl()
-        
-        glFlush()       
+
+        glutSwapBuffers()       
         
     def _setup_antialiasing(self):   
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) 
@@ -218,10 +218,10 @@ class OpenGLvisualizer(object):
         glEnable(GL_BLEND)
         
     def _setup_texture(self):
-        glEnable(GL_MULTISAMPLE)
         glEnable(GL_TEXTURE_2D)
-
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
+        
+        if self.texture != None:
+            glBindTexture(GL_TEXTURE_2D, self.texture)
 
     ''' Draws plane where basins texture is displayed '''
     def _draw_plane(self):
