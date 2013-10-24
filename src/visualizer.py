@@ -13,8 +13,7 @@ from OpenGLContext.arrays import *
 from models import MagnetModel, PendulumModel
 from integrators import EulerIntegrator
 from basins import BasinsGenerator
-
-
+ 
 
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 600
@@ -70,9 +69,9 @@ class DataConverter(object):
         
         self.pixels = self.NO_DATA_COLOR * numpy.ones((width, height, 4), dtype=numpy.uint8)
         self._colorize_pixels(basins_generator.result_data, basins_generator.track_length) 
-        
+
         return width, height, self.pixels
-        
+
 
 class OpenGLvisualizer(object):
     
@@ -80,6 +79,8 @@ class OpenGLvisualizer(object):
         self.basins_generator = basins_generator
         self.number_of_magnets = number_of_magnets
         self.is_control_points = True
+        self.is_lmb_magnet_pressed = False
+        self.dragged_magnet = None
         
         glutInit()
         glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -88,12 +89,15 @@ class OpenGLvisualizer(object):
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
         glutDisplayFunc(self.draw)
         glutKeyboardFunc(self._keyboard_action)
-        glutMouseFunc(self._mouse_action)
+        glutMouseFunc(self._mouse_click_action)
+        glutMotionFunc(self._mouse_move_action)
 
         glClearColor(0.0, 0.0, 0.0, 0.0)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluOrtho2D(0.0, 1.0, 0.0, 1.0)
+        
+        self.span = basins_generator.size / 2.0
+        gluOrtho2D(-self.span, self.span, -self.span, self.span)
         
         glutMainLoop()
       
@@ -105,14 +109,41 @@ class OpenGLvisualizer(object):
         elif key == 'c':       
             self._control_points_action()     
             
-    def _mouse_action(self, button, state, x, y):
-        print button
-        print state
-        print x
-        print y
+    def _mouse_click_action(self, button, state, win_x, win_y): 
+        if button == 0 and state == 0:  # LMB pressed
+            x = self.span * (2.0 * win_x / SCREEN_WIDTH - 1)
+            y = self.span * (-2.0 * win_y / SCREEN_WIDTH + 1)
+            
+            magnets = self.basins_generator.pendulum_model.magnets
+            
+            radius = 0.05 # TBD change to variable
+            
+            for magnet in magnets:
+                pos_x, pos_y = magnet.pos_x, magnet.pos_y
+                
+                check_radius = math.sqrt((x - pos_x) * (x - pos_x) + (y - pos_y) * (y - pos_y))
+                
+                if check_radius <= radius:
+                    self.is_lmb_magnet_pressed = True
+                    self.dragged_magnet = magnet
+                    break
+
+        elif button == 0 and state == 1:    # LMB released            
+            self.is_lmb_magnet_pressed = False
+        
+    def _mouse_move_action(self, win_x, win_y):
+        if self.is_lmb_magnet_pressed:
+            x = self.span * (2.0 * win_x / SCREEN_WIDTH - 1)
+            y = self.span * (-2.0 * win_y / SCREEN_WIDTH + 1)
+        
+            if self.dragged_magnet != None:
+                self.dragged_magnet.pos_x = x
+                self.dragged_magnet.pos_y = y
+
+                glutPostRedisplay()
             
     def _render_image(self):
-        self.basins_generator.calculate_basins([0, 0], 30, 0.2, 15)   
+        self.basins_generator.calculate_basins([0, 0], 30, 0.2, 30)   
         self._generate_texture()
         glutPostRedisplay()   
 
@@ -135,60 +166,83 @@ class OpenGLvisualizer(object):
 
     def draw(self):     
         glClear(GL_COLOR_BUFFER_BIT)
- 
+        
+        self._setup_antialiasing()
         self._setup_texture()
         self._draw_plane()
         
         if self.is_control_points:
             self._draw_control_points()
         
+        self._disable()
+        
         glFlush()       
+        
+    def _setup_antialiasing(self):   
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) 
+        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
+                
+        glEnable(GL_POLYGON_SMOOTH)      
+        glEnable(GL_BLEND)
         
     def _setup_texture(self):
         glEnable(GL_MULTISAMPLE)
         glEnable(GL_TEXTURE_2D)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
 
     def _draw_plane(self):
         glColor3f(0.0, 0.0, 0.0)
         
-        glBegin(GL_QUADS)
-        glTexCoord2f(1, 0)
-        glVertex2f(0, 0)
-        glTexCoord2f(1, 1)
-        glVertex2f(1, 0)
-        glTexCoord2f(0, 1)
-        glVertex2f(1, 1)
-        glTexCoord2f(0, 0)
-        glVertex2f(0, 1)
+        xvals = (-self.span, -self.span, self.span, self.span)
+        yvals = (self.span, -self.span, -self.span, self.span)
+        
+        svals = (0, 0, 1, 1)
+        tvals = (0, 1, 1, 0)
+        
+        glBegin(GL_POLYGON);
+        for i in range(4):
+            glVertex2f(xvals[i], yvals[i])
+            glTexCoord2f(svals[i], tvals[i])
+
         glEnd()  
         
     def _draw_control_points(self):
+        magnets = self.basins_generator.pendulum_model.magnets
+        
         glColor3f(1.0, 1.0, 1.0)
         
-        x1 = 0.5
-        y1 = 0.5
-        radius = 0.01
+        for magnet in magnets:            
+            x, y, z, radius = magnet.pos_x, magnet.pos_y, 0.5, 0.05
+            
+            glBegin(GL_TRIANGLE_FAN)
+            
+            glVertex3f(x, y, z)
+            for angle in range(360):
+                rad = angle * math.pi / 180
+                glVertex3f(x + math.sin(rad) * radius, y + math.cos(rad) * radius, z)
+     
+            glEnd()   
         
-        glBegin(GL_TRIANGLE_FAN)
-        
-        glVertex3f(x1, y1, 0.5)
-        for angle in range(360):
-            rad = angle * math.pi / 180
-            glVertex3f(x1 + math.sin(rad) * radius, y1 + math.cos(rad) * radius, 0.5)
- 
-        glEnd()      
+    def _disable(self):   
+        glDisable(GL_POLYGON_SMOOTH)      
+        glDisable(GL_BLEND)
+        glDisable(GL_MULTISAMPLE)
+        glDisable(GL_TEXTURE_2D)
             
         
 if __name__ == "__main__":
         print "Hit ESC key to quit, 'r' to render, and 'c' to hide / display control points"
+        print "Drag magnets control points to change magnets position"
+        print ""
         
         magnet1 = MagnetModel(1.0, 0.0, 0.5)
         magnet2 = MagnetModel(-1.0, -1.0, 0.5)
         magnet3 = MagnetModel(-1.0, 1.0, 0.5)
- 
+
         magnets = [magnet1, magnet2, magnet3] 
         
         pendulum = PendulumModel(0.2, 0.5, 0.1)
@@ -201,5 +255,6 @@ if __name__ == "__main__":
         basins_generator.integrator = integrator
 
         visualizer = OpenGLvisualizer(basins_generator, len(magnets))  
-    
-              
+        
+        
+        
