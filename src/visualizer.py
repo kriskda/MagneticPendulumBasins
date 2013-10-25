@@ -15,12 +15,13 @@ from integrators import EulerIntegrator
 from basins import BasinsGenerator
  
 
-SCREEN_SIZE = 600
+SCREEN_SIZE = 400
+
 
 ''' Some functions in my first prototype which presumably will be deleted as work progresses '''  
 class DataConverter(object):
     
-    NO_DATA_COLOR = [0, 0, 0, 255]  
+    NO_DATA_COLOR = numpy.array([0, 0, 0, 255], dtype=numpy.uint8)  
     
     def _correct_rgb_color(self, rgb_color):
         return map(lambda x: int(255.0 * x), rgb_color)
@@ -43,7 +44,7 @@ class DataConverter(object):
 
     def _colorize_pixels(self, result_data, track_length):      
         number_of_colors = len(self.color_list)
-  
+
         for i in range(number_of_colors): 
             indices = numpy.where(result_data == i)  
             r, g, b, a = self.color_list[i]    
@@ -56,9 +57,9 @@ class DataConverter(object):
             scaled[:, 0] = scale_factor * r
             scaled[:, 1] = scale_factor * g
             scaled[:, 2] = scale_factor * b
-            #scaled[:, 3] = a                    # no need for alpha, already set
+            scaled[:, 3] = a                    # no need for alpha, already set
 
-            self.pixels[indices] = scaled
+            self.pixels[indices] = scaled             
 
     def generate_pixel_data(self, basins_generator, number_of_magnets):
         self._generate_color_list(number_of_magnets)
@@ -76,6 +77,7 @@ class VisualizerController(object):
     def __init__(self, view):
         self.view = view
         self.is_control_points = True
+        self.is_auto_render = False
         self.is_lmb_magnet_pressed = False
         self.dragged_magnet = None
         
@@ -83,9 +85,11 @@ class VisualizerController(object):
         if key == '\033':   # exit on Esc key         
             exit()
         elif key == 'r':
-            self.view.render_image()
+            self._render_image()
         elif key == 'c':       
-            self._toggle_control_points() 
+            self._toggle_control_points()
+        elif key == 'a':
+            self._toogle_auto_render() 
             
     def mouse_click_action(self, button, state, win_x, win_y): 
         if button == 0 and state == 0:  # LMB pressed
@@ -107,12 +111,12 @@ class VisualizerController(object):
     
     ''' Toggles on / off control points of magnets '''
     def _toggle_control_points(self):
-        if self.is_control_points:
-            self.is_control_points = False
-        else:
-            self.is_control_points = True
-             
+        self.is_control_points = not self.is_control_points   
         self.view.redisplay_window() 
+    
+    ''' Toggles on / off autorendering '''
+    def _toogle_auto_render(self):
+        self.is_auto_render = not self.is_auto_render
     
     ''' If LMB pressed check if mouse is over one of the magnets '''
     def _lmb_pressed(self, win_x, win_y, magnets):
@@ -129,6 +133,9 @@ class VisualizerController(object):
     
     def _lmb_released(self):
         self.is_lmb_magnet_pressed = False
+        
+        if self.is_auto_render:
+            self._render_image()
     
     ''' Changes position of selected (pressed) magnet '''
     def _lmb_pressed_drag(self, win_x, win_y):
@@ -140,6 +147,10 @@ class VisualizerController(object):
                 self.dragged_magnet.pos_y = y
 
                 self.view.redisplay_window() 
+
+    ''' Delegation to view class '''
+    def _render_image(self):
+        self.view.render_image()
     
 
 class OpenGLvisualizer(object):
@@ -157,6 +168,7 @@ class OpenGLvisualizer(object):
         
     def _init_gl(self):
         glutInit()
+        glShadeModel(GL_SMOOTH)
         glutInitWindowSize(SCREEN_SIZE, SCREEN_SIZE)
         glutInitWindowPosition(SCREEN_SIZE / 2, SCREEN_SIZE / 2)
         glutCreateWindow("Magnetic Pendulum Basins Visualizer")
@@ -185,8 +197,8 @@ class OpenGLvisualizer(object):
 
     ''' Generates magnetic pendulum basins texture ''' 
     def _generate_texture(self):    
-        width, height, self.pixels = DataConverter().generate_pixel_data(self.basins_generator, self.number_of_magnets)
- 
+        width, height, self.pixels = DataConverter().generate_pixel_data(self.basins_generator, self.number_of_magnets)               
+
         self.texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.texture)
         glPixelStorei(GL_UNPACK_ALIGNMENT,1)        
@@ -195,8 +207,9 @@ class OpenGLvisualizer(object):
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
 
-    def draw(self):     
+    def draw(self):      
         glClear(GL_COLOR_BUFFER_BIT)
+        glDisable(GL_LIGHTING)
         
         self._setup_antialiasing()
         
@@ -205,22 +218,19 @@ class OpenGLvisualizer(object):
         
         if self.controller.is_control_points:
             self._draw_control_points()
-        
+
         self._disable_gl()
 
+        glFlush()
         glutSwapBuffers()       
         
-    def _setup_antialiasing(self):   
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) 
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
-                
-        glEnable(GL_POLYGON_SMOOTH)      
-        glEnable(GL_BLEND)
-        
+    def _setup_antialiasing(self): 
+        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)                               
+        glEnable(GL_BLEND)                                                            
+ 
     def _setup_texture(self):
-        glEnable(GL_TEXTURE_2D)
-        
         if self.texture != None:
+            glEnable(GL_TEXTURE_2D)
             glBindTexture(GL_TEXTURE_2D, self.texture)
 
     ''' Draws plane where basins texture is displayed '''
@@ -233,7 +243,7 @@ class OpenGLvisualizer(object):
         svals = (0, 0, 1, 1)
         tvals = (0, 1, 1, 0)
         
-        glBegin(GL_POLYGON);
+        glBegin(GL_TRIANGLE_FAN);
         for i in range(4):
             glVertex2f(xvals[i], yvals[i])
             glTexCoord2f(svals[i], tvals[i])
@@ -258,16 +268,15 @@ class OpenGLvisualizer(object):
      
             glEnd()   
         
-    def _disable_gl(self):   
-        glDisable(GL_POLYGON_SMOOTH)      
-        glDisable(GL_BLEND)
-        glDisable(GL_MULTISAMPLE)
+    def _disable_gl(self):                                                              
+        glDisable(GL_BLEND)                                                
         glDisable(GL_TEXTURE_2D)
             
         
 if __name__ == "__main__":
-        print "Hit ESC key to quit, 'r' to render, and 'c' to hide / display control points"
-        print "Drag magnet control points to change magnets position"
+        print "Hit ESC key to quit, 'r' to render, 'c' to hide / display control points,"
+        print "'a' to turn on / off autorendering"
+        print "Drag magnet control point to change magnet position"
         print ""
         
         magnet1 = MagnetModel(1.0, 0.0, 0.5)
