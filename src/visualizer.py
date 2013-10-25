@@ -1,5 +1,6 @@
 import numpy
 import colorsys 
+import Image
 import math
 
 from OpenGL.GL import *
@@ -85,11 +86,13 @@ class VisualizerController(object):
         if key == '\033':   # exit on Esc key         
             exit()
         elif key == 'r':
-            self._render_image()
+            self.view.render_image()
         elif key == 'c':       
             self._toggle_control_points()
         elif key == 'a':
             self._toogle_auto_render() 
+        elif key == 's':
+            self.view.save_image()
             
     def mouse_click_action(self, button, state, win_x, win_y): 
         if button == 0 and state == 0:  # LMB pressed
@@ -132,10 +135,10 @@ class VisualizerController(object):
                 break        
     
     def _lmb_released(self):
-        self.is_lmb_magnet_pressed = False
+        if self.is_lmb_magnet_pressed and self.is_auto_render:  # render only when magnet was pressed
+            self.view.render_image()
         
-        if self.is_auto_render:
-            self._render_image()
+        self.is_lmb_magnet_pressed = False            
     
     ''' Changes position of selected (pressed) magnet '''
     def _lmb_pressed_drag(self, win_x, win_y):
@@ -148,9 +151,6 @@ class VisualizerController(object):
 
                 self.view.redisplay_window() 
 
-    ''' Delegation to view class '''
-    def _render_image(self):
-        self.view.render_image()
     
 
 class OpenGLvisualizer(object):
@@ -172,7 +172,7 @@ class OpenGLvisualizer(object):
         glutInitWindowSize(SCREEN_SIZE, SCREEN_SIZE)
         glutInitWindowPosition(SCREEN_SIZE / 2, SCREEN_SIZE / 2)
         glutCreateWindow("Magnetic Pendulum Basins Visualizer")
-        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_MULTISAMPLE)
         
         glutDisplayFunc(self.draw)
         
@@ -188,7 +188,7 @@ class OpenGLvisualizer(object):
         glutMainLoop()
            
     def render_image(self):
-        self.basins_generator.calculate_basins([0, 0], 30, 0.2, 30)   
+        self.basins_generator.calculate_basins([0, 0], 20, 0.5, 20)   
         self._generate_texture()
         self.redisplay_window()         
 
@@ -201,16 +201,23 @@ class OpenGLvisualizer(object):
 
         self.texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.texture)
-        glPixelStorei(GL_UNPACK_ALIGNMENT,1)        
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)  
+
+        #glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        #glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+        glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+        
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)          
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pixels)
 
     def draw(self):      
         glClear(GL_COLOR_BUFFER_BIT)
-        glDisable(GL_LIGHTING)
-        
+ 
         self._setup_antialiasing()
         
         self._setup_texture()
@@ -219,14 +226,20 @@ class OpenGLvisualizer(object):
         if self.controller.is_control_points:
             self._draw_control_points()
 
-        self._disable_gl()
+        #self._disable_gl()
 
         glFlush()
         glutSwapBuffers()       
         
+    def save_image(self):
+        data = glReadPixels(0, 0, SCREEN_SIZE, SCREEN_SIZE, GL_RGBA, GL_UNSIGNED_BYTE)
+        Image.fromstring("RGBA", (SCREEN_SIZE, SCREEN_SIZE), data).save('screenshot.png', 'PNG')
+        print "\n> Saved screenshot..."
+        
     def _setup_antialiasing(self): 
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)                               
-        glEnable(GL_BLEND)                                                            
+        glEnable(GL_BLEND)      
+        glEnable(GL_MULTISAMPLE_ARB)                                                      
  
     def _setup_texture(self):
         if self.texture != None:
@@ -268,14 +281,15 @@ class OpenGLvisualizer(object):
      
             glEnd()   
         
-    def _disable_gl(self):                                                              
+    def _disable_gl(self):    
+        glDisable(GL_MULTISAMPLE_ARB)                                                          
         glDisable(GL_BLEND)                                                
         glDisable(GL_TEXTURE_2D)
             
         
 if __name__ == "__main__":
         print "Hit ESC key to quit, 'r' to render, 'c' to hide / display control points,"
-        print "'a' to turn on / off autorendering"
+        print "'a' to turn on / off autorendering, 's' save screenshot"
         print "Drag magnet control point to change magnet position"
         print ""
         
@@ -284,13 +298,13 @@ if __name__ == "__main__":
         magnet3 = MagnetModel(-1.0, 1.0, 0.5)
 
         magnets = [magnet1, magnet2, magnet3] 
-        
+
         pendulum = PendulumModel(0.2, 0.5, 0.1)
         pendulum.magnets = magnets 
 
         integrator = EulerIntegrator(0.01)  
         
-        basins_generator = BasinsGenerator(5, SCREEN_SIZE)
+        basins_generator = BasinsGenerator(5, 2 * SCREEN_SIZE)
         basins_generator.pendulum_model = pendulum
         basins_generator.integrator = integrator
 
