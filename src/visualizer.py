@@ -58,7 +58,7 @@ class DataConverter(object):
             scaled[:, 0] = scale_factor * r
             scaled[:, 1] = scale_factor * g
             scaled[:, 2] = scale_factor * b
-            scaled[:, 3] = a                    # no need for alpha, already set
+            #scaled[:, 3] = a                    # no need for alpha, already set
 
             self.pixels[indices] = scaled             
 
@@ -232,7 +232,7 @@ class OpenGLvisualizer(object):
         self._setup_texture()
         self._draw_plane()
         
-        glDisable(GL_TEXTURE_2D)    # need this here so control points do not turn black
+        glDisable(GL_TEXTURE_2D)    # need this here so control points do not turn black when texture loads
                                
         if self.controller.is_grid:
             self._draw_grid()
@@ -354,4 +354,8 @@ if __name__ == "__main__":
         visualizer = OpenGLvisualizer(basins_generator, len(magnets))  
         
         
+        
+        
+        
+                
         
