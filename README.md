@@ -7,7 +7,7 @@ MagneticPendulumBasins is a CUDA generator of "basins of attraction" of magnetic
 
 Installation
 ============
-Simply clone this repository and run either :code:`python src/main.py` (png files generator) or :code:`python src/vizualizer.py` (OpenGL visualizer). 
+Simply clone this repository and run either `python src/main.py` (png files generator) or `python src/vizualizer.py` (OpenGL visualizer). 
 Note that the latter is experimental at the moment. It may also require you to:
 
 	pip install PyDispatcher PyVRML97 OpenGLContext
