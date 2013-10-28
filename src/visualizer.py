@@ -220,13 +220,15 @@ class OpenGLvisualizer(object):
         glClear(GL_COLOR_BUFFER_BIT)
  
         self._setup_antialiasing()
-        
+
         self._setup_texture()
         self._draw_plane()
         
+        glDisable(GL_TEXTURE_2D)    # need this here so control points do not turn black
+        
         if self.controller.is_control_points:
             self._draw_control_points()
-
+        
         self._disable_gl()
 
         glFlush()
@@ -271,7 +273,7 @@ class OpenGLvisualizer(object):
         glColor3f(1.0, 1.0, 1.0)
         
         for magnet in magnets:            
-            x, y, z = magnet.pos_x, magnet.pos_y, 0.5
+            x, y, z = magnet.pos_x, magnet.pos_y, 1.0
             
             glBegin(GL_TRIANGLE_FAN)
             
@@ -284,8 +286,7 @@ class OpenGLvisualizer(object):
         
     def _disable_gl(self):    
         glDisable(GL_MULTISAMPLE)                                                          
-        glDisable(GL_BLEND)                                                
-        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_BLEND)                                                        
             
         
 if __name__ == "__main__":
