@@ -3,11 +3,13 @@ MagneticPendulumBasins
 
 MagneticPendulumBasins is a CUDA generator of "basins of attraction" of magnetic pendulum. Pendulum model is simplified and its description can by found here: http://beltoforion.de/magnetic_pendulum/magnetic_pendulum_en.html
 
-	![Alt text](/example.png "Example result")
+![Alt text](/example.png "Example result")
 
 Installation
 ============
-Simply clone this repository and run either 'python src/main.py' (png files generator) or 'python src/vizualizer.py' (OpenGL visualizer). Note that the latter is experimental at the moment. It may also require you to:
+Simply clone this repository and run either 'python src/main.py' (png files generator) or 'python src/vizualizer.py' (OpenGL visualizer). 
+Note that the latter is experimental at the moment. It may also require you to:
+
 	pip install PyDispatcher PyVRML97 OpenGLContext
 
 Simple example
