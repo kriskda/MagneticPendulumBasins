@@ -68,7 +68,11 @@ class DataConverter(object):
         width, height = basins_generator.result_data.shape   
         
         self.pixels = self.NO_DATA_COLOR * numpy.ones((width, height, 4), dtype=numpy.uint8)
-        self._colorize_pixels(basins_generator.result_data, basins_generator.track_length) 
+        
+        try:
+            self._colorize_pixels(basins_generator.result_data, basins_generator.track_length) 
+        except ValueError:
+            print "No update data"
 
         return width, height, self.pixels
 
@@ -188,7 +192,7 @@ class OpenGLvisualizer(object):
         glutMainLoop()
            
     def render_image(self):
-        self.basins_generator.calculate_basins([0, 0], 20, 0.5, 20)   
+        self.basins_generator.calculate_basins([0, 0], 50, 0.5, 50)   
         self._generate_texture()
         self.redisplay_window()         
 
