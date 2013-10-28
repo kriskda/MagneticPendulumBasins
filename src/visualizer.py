@@ -82,6 +82,7 @@ class VisualizerController(object):
     def __init__(self, view):
         self.view = view
         self.is_control_points = True
+        self.is_grid = True
         self.is_auto_render = False
         self.is_lmb_magnet_pressed = False
         self.dragged_magnet = None
@@ -97,6 +98,8 @@ class VisualizerController(object):
             self._toogle_auto_render() 
         elif key == 's':
             self.view.save_image()
+        elif key == 'g':
+            self._toogle_grid()
             
     def mouse_click_action(self, button, state, win_x, win_y): 
         if button == 0 and state == 0 and self.is_control_points:  # LMB pressed and control points visible
@@ -120,6 +123,11 @@ class VisualizerController(object):
     def _toggle_control_points(self):
         self.is_control_points = not self.is_control_points   
         self.view.redisplay_window() 
+    
+    ''' Toggles on / off grid '''
+    def _toogle_grid(self):
+        self.is_grid = not self.is_grid
+        self.view.redisplay_window()
     
     ''' Toggles on / off autorendering '''
     def _toogle_auto_render(self):
@@ -225,6 +233,9 @@ class OpenGLvisualizer(object):
         self._draw_plane()
         
         glDisable(GL_TEXTURE_2D)    # need this here so control points do not turn black
+                               
+        if self.controller.is_grid:
+            self._draw_grid()
         
         if self.controller.is_control_points:
             self._draw_control_points()
@@ -273,16 +284,45 @@ class OpenGLvisualizer(object):
         glColor3f(1.0, 1.0, 1.0)
         
         for magnet in magnets:            
-            x, y, z = magnet.pos_x, magnet.pos_y, 1.0
+            x, y = magnet.pos_x, magnet.pos_y
             
             glBegin(GL_TRIANGLE_FAN)
             
-            glVertex3f(x, y, z)
+            glVertex2f(x, y)
             for angle in range(360):
                 rad = angle * math.pi / 180
-                glVertex3f(x + math.sin(rad) * self.magnet_radius, y + math.cos(rad) * self.magnet_radius, z)
+                glVertex2f(x + math.sin(rad) * self.magnet_radius, y + math.cos(rad) * self.magnet_radius)
      
             glEnd()   
+        
+    ''' Draws grid over texture '''
+    def _draw_grid(self):
+        glColor3f(0.5, 0.5, 0.5)
+
+        cursor_plus = 0.0
+        cursor_minus = cursor_plus
+        
+        ''' Vertical & horizontal cross lines '''
+        self._draw_line(-self.span, 0, self.span, 0)
+        self._draw_line(0, -self.span, 0, self.span)
+        
+        while (cursor_plus < self.span):
+            cursor_plus = cursor_plus + 1.0
+            cursor_minus = cursor_minus - 1.0
+            
+            ''' Grid vertical lines '''
+            self._draw_line(-self.span, cursor_plus, self.span, cursor_plus)
+            self._draw_line(-self.span, cursor_minus, self.span, cursor_minus)
+            
+            ''' Grid horizontal lines '''
+            self._draw_line(cursor_plus, -self.span, cursor_plus, self.span) 
+            self._draw_line(cursor_minus, -self.span, cursor_minus, self.span) 
+        
+    def _draw_line(self, x1, y1, x2, y2):
+        glBegin(GL_LINES)
+        glVertex2f(x1, y1)
+        glVertex2f(x2, y2)
+        glEnd()
         
     def _disable_gl(self):    
         glDisable(GL_MULTISAMPLE)                                                          
@@ -291,7 +331,8 @@ class OpenGLvisualizer(object):
         
 if __name__ == "__main__":
         print "Hit ESC key to quit, 'r' to render, 'c' to hide / display control points,"
-        print "'a' to turn on / off autorendering, 's' save screenshot"
+        print "'a' to turn on / off autorendering, 's' save screenshot,"
+        print "'g' to turn on / off grid"
         print "Drag magnet control point to change magnet position"
         print ""
         
