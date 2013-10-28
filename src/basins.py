@@ -1,6 +1,7 @@
 import numpy 
 import pycuda.driver as cuda
 
+from pycuda.driver import LaunchError
 from pycuda.compiler import SourceModule 
      
   
@@ -84,7 +85,11 @@ class BasinsGenerator(object):
         self.result_data = numpy.zeros((self.resolution, self.resolution)).astype(numpy.int32)
         self.track_length = numpy.zeros((self.resolution, self.resolution)).astype(numpy.float32)        
 
-        self._do_cuda_calculation([posx0, posy0], [velx0, vely0], sim_time, kernel_sim_time)
+        try:
+            self._do_cuda_calculation([posx0, posy0], [velx0, vely0], sim_time, kernel_sim_time)
+        except LaunchError:
+            self._deactivate_cuda() 
+            print "\n\nCUDA failed. Try to decrease kernel sim time!"
     
     def prepare_gpu_source(self, delta):
         self.pendulum_model.prepare_gpu_source()
@@ -100,9 +105,8 @@ class BasinsGenerator(object):
         
         while (time < sim_time):
             print "  Kernel execution step %s/%s..." % (counter, iterations), 
-            
             self._initalize_cuda() 
-        
+                
             mod = SourceModule(self.gpu_source)              
             do_basins = mod.get_function("basins")
             
@@ -114,15 +118,15 @@ class BasinsGenerator(object):
                       cuda.Out(self.result_data),                       
                       numpy.float32(kernel_sim_time),
                       block = (self.THREADS_PER_BLOCK, self.THREADS_PER_BLOCK, 1), 
-                      grid = (self.resolution / self.THREADS_PER_BLOCK, self.resolution / self.THREADS_PER_BLOCK))
-                        
+                      grid = (self.resolution / self.THREADS_PER_BLOCK, self.resolution / self.THREADS_PER_BLOCK))   
+            
             self._deactivate_cuda() 
                                                              
             time = time + kernel_sim_time
             counter = counter + 1
             
             print "done"
- 
+
         self._save_data()
     
     def _initalize_cuda(self):
