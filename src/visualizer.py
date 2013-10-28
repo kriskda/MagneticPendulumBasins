@@ -192,7 +192,7 @@ class OpenGLvisualizer(object):
         glutMainLoop()
            
     def render_image(self):
-        self.basins_generator.calculate_basins([0, 0], 50, 0.5, 50)   
+        self.basins_generator.calculate_basins([0, 0], 20, 0.5, 20)   
         self._generate_texture()
         self.redisplay_window()         
 
@@ -206,9 +206,6 @@ class OpenGLvisualizer(object):
         self.texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.texture)
         glPixelStorei(GL_UNPACK_ALIGNMENT,1)  
-
-        #glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        #glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -230,7 +227,7 @@ class OpenGLvisualizer(object):
         if self.controller.is_control_points:
             self._draw_control_points()
 
-        #self._disable_gl()
+        self._disable_gl()
 
         glFlush()
         glutSwapBuffers()       
@@ -243,7 +240,7 @@ class OpenGLvisualizer(object):
     def _setup_antialiasing(self): 
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)                               
         glEnable(GL_BLEND)      
-        glEnable(GL_MULTISAMPLE_ARB)                                                      
+        glEnable(GL_MULTISAMPLE)                                                      
  
     def _setup_texture(self):
         if self.texture != None:
@@ -286,7 +283,7 @@ class OpenGLvisualizer(object):
             glEnd()   
         
     def _disable_gl(self):    
-        glDisable(GL_MULTISAMPLE_ARB)                                                          
+        glDisable(GL_MULTISAMPLE)                                                          
         glDisable(GL_BLEND)                                                
         glDisable(GL_TEXTURE_2D)
             
