@@ -99,7 +99,7 @@ class VisualizerController(object):
             self.view.save_image()
             
     def mouse_click_action(self, button, state, win_x, win_y): 
-        if button == 0 and state == 0:  # LMB pressed
+        if button == 0 and state == 0 and self.is_control_points:  # LMB pressed and control points visible
             magnets = self.view.basins_generator.pendulum_model.magnets
             self._lmb_pressed(win_x, win_y, magnets)
             
