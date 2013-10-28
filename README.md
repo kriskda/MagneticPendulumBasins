@@ -31,7 +31,8 @@ Similar code as the following example can be found in 'main.py':
     integrator = EulerIntegrator(0.01)  
     
     # Paramaters: r, g, b - startign color definition
-    image_generator = BasicImageGenerator(255, 0, 0)
+    #image_generator = BasicImageGenerator(255, 0, 0)	# just colors the regions 
+    image_generator = AdvancedImageGenerator(255, 0, 0)	# colors and adds gradient based on trajectory length
     image_generator.draw_grid = False		
     image_generator.antialiasing = True     # if true image is 2x smaller
  
