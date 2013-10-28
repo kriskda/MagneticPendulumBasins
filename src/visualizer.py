@@ -169,9 +169,9 @@ class OpenGLvisualizer(object):
     
     def __init__(self, basins_generator, number_of_magnets):
         self.basins_generator = basins_generator
-        self.number_of_magnets = number_of_magnets
-        self.magnet_radius = 0.05
+        self.number_of_magnets = number_of_magnets        
         self.span = basins_generator.size / 2.0
+        self.magnet_radius = self.span * 0.05 / 2.5
         self.texture = None
         
         self.controller = VisualizerController(self)
